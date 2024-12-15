@@ -2,8 +2,8 @@ var canvas = null
 var context = null;
 
 // The total size of the map.
-var mapWidth = 15;
-var mapHeight = 22;
+var mapWidth = 0;
+var mapHeight = 0;
 
 // The number of cells shown on screen.
 const screenCellHeightAmount = 11;
@@ -32,31 +32,11 @@ var keyPresses = {};
 const movementStepAmount = 8;
 const movementTime = 250 // ms
 
-// Map of all tiles.
-const gameMap = [
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
-    0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0,
-    0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
-    0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0,
-    0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
-    0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0,
-    0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0,
-    0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0,
-    0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-];
+// Map Texture Storage
+var mapTextures = {};
+
+// Map of tiles.
+var gameMap = [];
 
 // Get canvas and context of first load of page.
 window.onload = function() {
@@ -71,15 +51,36 @@ window.onload = function() {
         keyPresses[event.key] = false;
     });
 
+    readMapFile();
+
     // Start the main loop.
     requestAnimationFrame(drawGame);
 }
 
+async function readMapFile() {
+    const response = await fetch('assets/maps/spawn.json');
+    const mapData = await response.json();
+    console.log(mapData);
+
+    gameMap = mapData.cells;
+    currentPlayerXPosition = mapData.defaultSpawnX;
+    currentPlayerYPosition = mapData.defaultSpawnY;
+    mapWidth = mapData.width;
+    mapHeight = mapData.height;
+
+
+}
+
 // Draw each updated frame.
 function drawGame() {
-    if (canvas == null || context == null) {
+    if (canvas == null || context == null || gameMap == null) {
         return;
     }
+
+    // Clear canvas to prevent seeing previous frames around edge of map.
+    context.clearRect(0, 0, canvas.width, canvas.height);
+
+    context.imageSmoothingEnabled = false;
     
     // Check player movement.
     if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
@@ -93,9 +94,6 @@ function drawGame() {
     } else if (keyPresses["ArrowDown"]) {
         movePlayer(0, 1);
     }
-
-    // Clear canvas to prevent seeing previous frames around edge of map.
-    context.clearRect(0, 0, canvas.width, canvas.height);
 
     // Get the offset the canvas has from the centre of the canvas screen.
     const xOffset = Math.floor(currentPlayerXPosition) - Math.floor(screenCellWidthAmount  / 2);
@@ -114,24 +112,19 @@ function drawGame() {
                 continue;
             }
 
-            switch (gameMap[((mapY*mapWidth)+mapX)]) {
+            const cell = gameMap[((mapY*mapWidth)+mapX)];
 
-                // Floor colour.
-                case 0:
-                    context.fillStyle = "#b0b0b0";
-                    break;
-                // Wall colour.
-                case 1:
-                    context.fillStyle = "#4f4f4f";
-                    break;
-                // This should never occur, but display as black if no option is provided.
-                default:
-                    context.fillStyle = "#000000";
-                    break;
+            // Check if texture has already been loaded, preventing flickering due to texture reloading.
+            if (!(cell.textureID in mapTextures)) {
+                const texture = new Image();
+                texture.src = "assets/textures/terrain/" + cell.textureID + ".png";
+                mapTextures[cell.textureID] = texture;
             }
 
+            const tex = mapTextures[cell.textureID]; 
+
             // Draw the current tile at the correct position with the correct scale.
-            context.fillRect(Math.floor((x + currentPlayerXDecimalMovement) * tileWidth), Math.floor((y + currentPlayerYDecimalMovement) * tileHeight), tileWidth, tileHeight);
+            context.drawImage(tex, Math.floor((x + currentPlayerXDecimalMovement) * tileWidth), Math.floor((y + currentPlayerYDecimalMovement) * tileHeight), tileWidth, tileHeight);
         }
     }
 
@@ -166,7 +159,7 @@ async function movePlayer(xIncrease, yIncrease) {
     const newPlayerYPosition = currentPlayerYPosition + yIncrease;
 
     // Check the player will not be moving outside the map or into a wall.
-    if (newPlayerXPosition < 0 || newPlayerXPosition >= mapWidth || newPlayerYPosition < 0 || newPlayerYPosition >= mapHeight || gameMap[newPlayerYPosition * mapWidth + newPlayerXPosition] != 0) {
+    if (newPlayerXPosition < 0 || newPlayerXPosition >= mapWidth || newPlayerYPosition < 0 || newPlayerYPosition >= mapHeight || gameMap[newPlayerYPosition * mapWidth + newPlayerXPosition].walkable != 1) {
         return;
     }
 
