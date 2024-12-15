@@ -1,0 +1,27 @@
+html, body {
+    margin: 0px;
+    background-color: slategray;
+}
+
+#gameStats {
+    image-rendering: auto;
+    color: red;
+}
+
+#gameRegion {
+    display: flex;
+    margin: auto;
+    justify-content: center;
+    align-items: center;
+}
+
+#gameCanvas {
+    width: 60%;
+    background-color: black;
+    image-rendering: pixelated;
+    border: 2px black solid;
+}
+
+a {
+    margin-right: 10px;
+}
