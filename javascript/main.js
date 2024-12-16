@@ -10,8 +10,7 @@ const screenCellHeightAmount = 11;
 const screenCellWidthAmount = 15;
 
 // Tile sizes.
-const tileWidth = 32;
-const tileHeight = 32;
+const tileSize = 32;
 
 // Frame variables.
 var currentSecond = 0;
@@ -26,19 +25,29 @@ var currentPlayerYPosition = 0;
 var currentPlayerXDecimalMovement = 0;
 var currentPlayerYDecimalMovement = 0;
 
-// Player movement variables
+// Player movement variables.
 var keyPresses = {};
 
 const movementStepAmount = 8;
-const movementTime = 250 // ms
+const movementTime = 250; // ms
+var currentFacingDirection = 3;  // Left=0, Right=1, Up=2, Down=3.
+// Variable to keep track of which leg was last used to walk, LeftLeg=0, RightLeg=1.
+var lastLeg = 0;
+var currentlyStepping = false;
+var currentStepCount = 0;
+const amountOfStepsBetweenFrameSwaps = 2; //ms
 
-// Map Texture Storage
+// Map Texture Storage.
 var mapTextures = {};
 
 // Map of tiles.
 var gameMap = [];
 
+// Player sprites.
+var playerSprites = null;
+
 // Get canvas and context of first load of page.
+
 window.onload = function() {
     canvas = document.getElementById("gameCanvas");
     context = canvas.getContext('2d');
@@ -81,19 +90,6 @@ function drawGame() {
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     context.imageSmoothingEnabled = false;
-    
-    // Check player movement.
-    if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
-        // Do nothing if player is already moving.
-    } else if (keyPresses["ArrowLeft"]) {
-        movePlayer(-1, 0);
-    } else if (keyPresses["ArrowRight"]) {
-        movePlayer(1, 0);
-    } else if (keyPresses["ArrowUp"]) {
-        movePlayer(0, -1);
-    } else if (keyPresses["ArrowDown"]) {
-        movePlayer(0, 1);
-    }
 
     // Get the offset the canvas has from the centre of the canvas screen.
     const xOffset = Math.floor(currentPlayerXPosition) - Math.floor(screenCellWidthAmount  / 2);
@@ -124,13 +120,30 @@ function drawGame() {
             const tex = mapTextures[cell.textureID]; 
 
             // Draw the current tile at the correct position with the correct scale.
-            context.drawImage(tex, Math.floor((x + currentPlayerXDecimalMovement) * tileWidth), Math.floor((y + currentPlayerYDecimalMovement) * tileHeight), tileWidth, tileHeight);
+            context.drawImage(tex, Math.floor((x + currentPlayerXDecimalMovement) * tileSize), Math.floor((y + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
         }
     }
 
-    // Draw player at centre of screen.
-    context.fillStyle = "#0059ff";
-    context.fillRect( tileWidth*Math.floor(screenCellWidthAmount/2), tileHeight*Math.floor(screenCellHeightAmount/2), tileWidth, tileHeight);
+    // Check player movement.
+    if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
+        // Do nothing if player is already moving.
+    } else if (keyPresses["ArrowLeft"]) {
+        currentFacingDirection = 0;
+        movePlayer(-1, 0);
+    } else if (keyPresses["ArrowRight"]) {
+        currentFacingDirection = 1;
+        movePlayer(1, 0);
+    } else if (keyPresses["ArrowUp"]) {
+        currentFacingDirection = 2;
+        movePlayer(0, -1);
+    } else if (keyPresses["ArrowDown"]) {
+        currentFacingDirection = 3;
+        movePlayer(0, 1);
+    } 
+    
+    // Draw player,
+    drawPlayer();
+    
 
     // Update FPS.
     var second = Math.floor(Date.now()/1000);
@@ -173,6 +186,26 @@ async function movePlayer(xIncrease, yIncrease) {
         currentPlayerXDecimalMovement += movementXAmount;
         currentPlayerYDecimalMovement += movementYAmount;
 
+        // Determine what leg the character should be stepping with.
+        currentStepCount++;
+        
+        if (currentStepCount >= amountOfStepsBetweenFrameSwaps) {
+            currentStepCount = 0;
+            // If the character should return to the neutral stage.
+            if (currentlyStepping) {
+                currentlyStepping = false;
+            // If the character is in the neutral pose and last stepped with their left leg.
+            } else if (lastLeg == 0) {
+                lastLeg = 1;
+                currentlyStepping = true;
+            } else if (lastLeg == 1) {
+                lastLeg = 0;
+                currentlyStepping = true;
+            }
+        }
+
+        drawPlayer();
+
         await sleep(movementTime / movementStepAmount);
     }
 
@@ -185,4 +218,28 @@ async function movePlayer(xIncrease, yIncrease) {
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function drawPlayer() {
+
+    // Get player sprites if it doesn't exist yet.
+    if (playerSprites == null) {
+        const plrSprite = new Image();
+        plrSprite.src = "assets/textures/characters/blue_knight.png";
+        playerSprites = plrSprite;
+    }
+
+    var currentStep = 0;
+
+    // Determine what leg, if any to step with.
+    if (currentlyStepping && lastLeg == 0) {
+        currentStep = tileSize;
+    } else if (currentlyStepping && lastLeg == 1) {
+        currentStep = tileSize/2;
+    }
+
+    // Draw player sprite.
+    context.drawImage(playerSprites, currentStep, (currentFacingDirection * tileSize), tileSize/2, tileSize, tileSize*Math.floor(screenCellWidthAmount/2), tileSize*Math.floor(screenCellHeightAmount/2) - tileSize, tileSize, tileSize*2);
+
+
 }

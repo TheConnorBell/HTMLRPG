@@ -2,7 +2,7 @@
   "mapID": 0,
   "mapName": "Spawn",
   "width": 15,
-  "height": 22,
+  "height": 23,
   "defaultSpawnX": 7,
   "defaultSpawnY": 5,
   "cells": [
@@ -117,6 +117,7 @@
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
+
     {"textureID": 0, "walkable": 1},
     {"textureID": 1, "walkable": 0},
     {"textureID": 0, "walkable": 1},
@@ -212,6 +213,7 @@
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
+
     {"textureID": 0, "walkable": 1},
     {"textureID": 1, "walkable": 0},
     {"textureID": 0, "walkable": 1},
@@ -307,6 +309,7 @@
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
+
     {"textureID": 0, "walkable": 1},
     {"textureID": 1, "walkable": 0},
     {"textureID": 0, "walkable": 1},
@@ -369,6 +372,6 @@
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
     {"textureID": 0, "walkable": 1},
-    {"textureID": 1, "walkable": 0}
+    {"textureID": 0, "walkable": 1}
   ]
 }
