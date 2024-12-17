@@ -31,6 +31,8 @@ var currentPlayerYDecimalMovement = 0;
 // Player movement variables.
 var keyPresses = {};
 
+var lockPlayerControls = false;
+
 const movementStepAmount = 8;
 const movementTime = 250; // ms
 var currentOrientation = 3;  // Left=0, Right=1, Up=2, Down=3.
@@ -67,7 +69,23 @@ window.onload = function() {
     readMapFile(defaultMapFile);
 
     // Start the main loop.
-    requestAnimationFrame(drawGame);
+    mainGameLoop();
+}
+
+function mainGameLoop() {
+
+    // Equivalent of a while(true) loop to run infinitely.
+    function loop() {
+        
+        // Draw the games tiles.
+        drawGame();
+
+        // Start the next loop.
+        requestAnimationFrame(loop);
+    }
+    // Begin the loop.
+    requestAnimationFrame(loop);
+
 }
 
 async function readMapFile(src) {
@@ -150,7 +168,9 @@ function drawGame() {
     }
 
     // Check player movement.
-    if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
+    if (lockPlayerControls) {
+        // Do nothing if the player controls are locked.
+    } else if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
         // Do nothing if player is already moving.
     } else if (keyPresses["ArrowLeft"]) {
         currentOrientation = 0;
@@ -184,13 +204,15 @@ function drawGame() {
     // Update Position values.
     document.getElementById("Position").innerHTML = "Position X=" + currentPlayerXPosition + " Y=" + currentPlayerYPosition;
     document.getElementById("SubPosition").innerHTML = "Sub Position X=" + currentPlayerXDecimalMovement + " Y=" + currentPlayerYDecimalMovement;
-
-    // Request the next frame.
-    requestAnimationFrame(drawGame);
 }
 
 // Move the player when requested.
 async function movePlayer(xIncrease, yIncrease) {
+
+    // Check if player controls are locked.
+    if (lockPlayerControls) {
+        return;
+    }
 
     // Get the new position the player will move to.
     const newPlayerXPosition = currentPlayerXPosition + xIncrease;
@@ -252,6 +274,12 @@ async function movePlayer(xIncrease, yIncrease) {
     currentPlayerYDecimalMovement = 0;
     currentPlayerXPosition += xIncrease;
     currentPlayerYPosition += yIncrease;
+
+    // Check if the player is standing on a teleporter.
+    var currentTeleporter = gameMapTeleporters.find((teleporter) => teleporter.x == currentPlayerXPosition && teleporter.y == currentPlayerYPosition);
+    if (currentTeleporter != null) {
+        lockPlayerControls = true;
+    }
 }
 
 function sleep(ms) {
@@ -278,6 +306,12 @@ function drawPlayer() {
 
     // Draw player sprite.
     context.drawImage(playerSprites, currentStep, (currentOrientation * tileSize), tileSize/2, tileSize, tileSize*Math.floor(screenCellWidthAmount/2), tileSize*Math.floor(screenCellHeightAmount/2) - tileSize, tileSize, tileSize*2);
+}
+
+function doSceneTransition() {
+
+    // Lock player controls if they arent already.
+    lockPlayerControls = true;
 
 
 }
