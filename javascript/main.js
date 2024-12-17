@@ -33,7 +33,7 @@ var keyPresses = {};
 
 const movementStepAmount = 8;
 const movementTime = 250; // ms
-var currentFacingDirection = 3;  // Left=0, Right=1, Up=2, Down=3.
+var currentOrientation = 3;  // Left=0, Right=1, Up=2, Down=3.
 // Variable to keep track of which leg was last used to walk, LeftLeg=0, RightLeg=1.
 var lastLeg = 0;
 var currentlyStepping = false;
@@ -43,8 +43,9 @@ const amountOfStepsBetweenFrameSwaps = 2; //ms
 // Map Texture Storage.
 var mapTextures = {};
 
-// Map of tiles.
-var gameMap = [];
+// Arrays of map information.
+var gameMapCells = [];
+var gameMapTeleporters = [];
 
 // Player sprites.
 var playerSprites = null;
@@ -74,19 +75,18 @@ async function readMapFile(src) {
     const mapData = await response.json();
     console.log(mapData);
 
-    gameMap = mapData.cells;
     currentPlayerXPosition = mapData.defaultSpawn[0];
     currentPlayerYPosition = mapData.defaultSpawn[1];
     mapWidth = mapData.mapSize[0];
     mapHeight = mapData.mapSize[1];
-    currentFacingDirection = mapData.defaultDirection;
-
-
+    currentOrientation = mapData.defaultOrientation;
+    gameMapCells = mapData.cells;
+    gameMapTeleporters = mapData.teleporters;
 }
 
 // Draw each updated frame.
 function drawGame() {
-    if (canvas == null || context == null || gameMap == null) {
+    if (canvas == null || context == null || gameMapCells == null) {
         return;
     }
 
@@ -112,7 +112,7 @@ function drawGame() {
                 continue;
             }
 
-            const cell = gameMap[((mapY*mapWidth)+mapX)];
+            const cell = gameMapCells[((mapY*mapWidth)+mapX)];
 
             // Check if texture has already been loaded, preventing flickering due to texture reloading.
             if (!(cell.textureType + "-" + cell.textureName in mapTextures)) {
@@ -128,20 +128,41 @@ function drawGame() {
         }
     }
 
+    const renderCellOffset = 1;
+    const maximumXRender = (currentPlayerXPosition + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
+    const minimumXRender = (currentPlayerXPosition - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
+    const maximumYRender = (currentPlayerYPosition + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
+    const minimumYRender = (currentPlayerYPosition - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
+    context.fillStyle = "#15d445";
+
+    // Draw teleporters onto the visible game map.
+    for (var i = 0; i < gameMapTeleporters.length; i++) {
+
+        const currentTeleporter = gameMapTeleporters[i];
+
+        // Check the teleporter is visible on the screen.
+        if (currentTeleporter.x > maximumXRender || currentTeleporter.x < minimumXRender || currentTeleporter.y > maximumYRender || currentTeleporter.y < minimumYRender) {
+            continue;
+        }
+
+        // Draw the teleporter.
+        context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+    }
+
     // Check player movement.
     if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
         // Do nothing if player is already moving.
     } else if (keyPresses["ArrowLeft"]) {
-        currentFacingDirection = 0;
+        currentOrientation = 0;
         movePlayer(-1, 0);
     } else if (keyPresses["ArrowRight"]) {
-        currentFacingDirection = 1;
+        currentOrientation = 1;
         movePlayer(1, 0);
     } else if (keyPresses["ArrowUp"]) {
-        currentFacingDirection = 2;
+        currentOrientation = 2;
         movePlayer(0, -1);
     } else if (keyPresses["ArrowDown"]) {
-        currentFacingDirection = 3;
+        currentOrientation = 3;
         movePlayer(0, 1);
     } 
     
@@ -181,7 +202,7 @@ async function movePlayer(xIncrease, yIncrease) {
     }
 
     // Get the position of the new cell to be walked onto.
-    const newCell = gameMap[newPlayerYPosition * mapWidth + newPlayerXPosition];
+    const newCell = gameMapCells[newPlayerYPosition * mapWidth + newPlayerXPosition];
 
     // Ensure that horizontal movement is allowed by the new cell.
     if ((xIncrease == -1 && newCell.walkable[0] != 1) || (xIncrease == 1 && newCell.walkable[1] != 1)) {
@@ -256,7 +277,7 @@ function drawPlayer() {
     }
 
     // Draw player sprite.
-    context.drawImage(playerSprites, currentStep, (currentFacingDirection * tileSize), tileSize/2, tileSize, tileSize*Math.floor(screenCellWidthAmount/2), tileSize*Math.floor(screenCellHeightAmount/2) - tileSize, tileSize, tileSize*2);
+    context.drawImage(playerSprites, currentStep, (currentOrientation * tileSize), tileSize/2, tileSize, tileSize*Math.floor(screenCellWidthAmount/2), tileSize*Math.floor(screenCellHeightAmount/2) - tileSize, tileSize, tileSize*2);
 
 
 }

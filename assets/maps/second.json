@@ -3,8 +3,8 @@
   "mapName":"Second",
   "mapSize":[7,7],
   "defaultSpawn":[3,5],
-  "defaultDirection":2,
-  "cells": [
+  "defaultOrientation":2,
+  "cells":[
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
@@ -60,5 +60,6 @@
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]}
-  ]
+  ],
+  "teleporters":[]
 }
