@@ -1,6 +1,9 @@
 var canvas = null
 var context = null;
 
+// The default map file
+const defaultMapFile = "assets/maps/spawn.json";
+
 // The total size of the map.
 var mapWidth = 0;
 var mapHeight = 0;
@@ -60,14 +63,14 @@ window.onload = function() {
         keyPresses[event.key] = false;
     });
 
-    readMapFile();
+    readMapFile(defaultMapFile);
 
     // Start the main loop.
     requestAnimationFrame(drawGame);
 }
 
-async function readMapFile() {
-    const response = await fetch('assets/maps/spawn.json');
+async function readMapFile(src) {
+    const response = await fetch(src);
     const mapData = await response.json();
     console.log(mapData);
 
@@ -76,6 +79,7 @@ async function readMapFile() {
     currentPlayerYPosition = mapData.defaultSpawn[1];
     mapWidth = mapData.mapSize[0];
     mapHeight = mapData.mapSize[1];
+    currentFacingDirection = mapData.defaultDirection;
 
 
 }
