@@ -72,10 +72,10 @@ async function readMapFile() {
     console.log(mapData);
 
     gameMap = mapData.cells;
-    currentPlayerXPosition = mapData.defaultSpawnX;
-    currentPlayerYPosition = mapData.defaultSpawnY;
-    mapWidth = mapData.width;
-    mapHeight = mapData.height;
+    currentPlayerXPosition = mapData.defaultSpawn[0];
+    currentPlayerYPosition = mapData.defaultSpawn[1];
+    mapWidth = mapData.mapSize[0];
+    mapHeight = mapData.mapSize[1];
 
 
 }
@@ -111,13 +111,13 @@ function drawGame() {
             const cell = gameMap[((mapY*mapWidth)+mapX)];
 
             // Check if texture has already been loaded, preventing flickering due to texture reloading.
-            if (!(cell.textureID in mapTextures)) {
+            if (!(cell.textureType + "-" + cell.textureName in mapTextures)) {
                 const texture = new Image();
-                texture.src = "assets/textures/terrain/" + cell.textureID + ".png";
-                mapTextures[cell.textureID] = texture;
+                texture.src = "assets/textures/terrain/" + cell.textureType + "/" + cell.textureName + ".png";
+                mapTextures[cell.textureType + "-" + cell.textureName] = texture;
             }
 
-            const tex = mapTextures[cell.textureID]; 
+            const tex = mapTextures[cell.textureType + "-" + cell.textureName];
 
             // Draw the current tile at the correct position with the correct scale.
             context.drawImage(tex, Math.floor((x + currentPlayerXDecimalMovement) * tileSize), Math.floor((y + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
@@ -171,8 +171,21 @@ async function movePlayer(xIncrease, yIncrease) {
     const newPlayerXPosition = currentPlayerXPosition + xIncrease;
     const newPlayerYPosition = currentPlayerYPosition + yIncrease;
 
-    // Check the player will not be moving outside the map or into a wall.
-    if (newPlayerXPosition < 0 || newPlayerXPosition >= mapWidth || newPlayerYPosition < 0 || newPlayerYPosition >= mapHeight || gameMap[newPlayerYPosition * mapWidth + newPlayerXPosition].walkable != 1) {
+    // Check the player will not be moving outside the map.
+    if (newPlayerXPosition < 0 || newPlayerXPosition >= mapWidth || newPlayerYPosition < 0 || newPlayerYPosition >= mapHeight) {
+        return;
+    }
+
+    // Get the position of the new cell to be walked onto.
+    const newCell = gameMap[newPlayerYPosition * mapWidth + newPlayerXPosition];
+
+    // Ensure that horizontal movement is allowed by the new cell.
+    if ((xIncrease == -1 && newCell.walkable[0] != 1) || (xIncrease == 1 && newCell.walkable[1] != 1)) {
+        return;
+    }
+
+    // Ensure that vertical movement is allowed by the new cell.
+    if ((yIncrease == -1 && newCell.walkable[2] != 1) || (yIncrease == 1 && newCell.walkable[3] != 1)) {
         return;
     }
 
