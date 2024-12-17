@@ -33,6 +33,7 @@ var currentPlayerYDecimalMovement = 0;
 var keyPresses = {};
 
 var lockPlayerControls = false;
+var currentlyDoingTransition = false;
 
 const movementStepAmount = 8;
 const movementTime = 250; // ms
@@ -49,6 +50,7 @@ var mapTextures = {};
 // Arrays of map information.
 var gameMapCells = [];
 var gameMapTeleporters = [];
+var gameMapDecorations = [];
 
 // Player sprites.
 var playerSprites = null;
@@ -105,6 +107,7 @@ async function readMapFile(src) {
     currentOrientation = mapData.defaultOrientation;
     gameMapCells = mapData.cells;
     gameMapTeleporters = mapData.teleporters;
+    gameMapDecorations = mapData.decorations;
 }
 
 // Draw each updated frame.
@@ -151,11 +154,12 @@ function drawGame() {
         }
     }
 
-    const renderCellOffset = 1;
-    const maximumXRender = (currentPlayerXPosition + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
-    const minimumXRender = (currentPlayerXPosition - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
-    const maximumYRender = (currentPlayerYPosition + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
-    const minimumYRender = (currentPlayerYPosition - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
+    var renderCellOffset = 1;
+    var maximumXRender = (currentPlayerXPosition + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
+    var minimumXRender = (currentPlayerXPosition - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
+    var maximumYRender = (currentPlayerYPosition + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
+    var minimumYRender = (currentPlayerYPosition - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
+    // Default teleporter fill colour.
     context.fillStyle = "#15d445";
 
     // Draw teleporters onto the visible game map.
@@ -168,8 +172,33 @@ function drawGame() {
             continue;
         }
 
-        // Draw the teleporter.
-        context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+        // Draw teleporters using the correct/no texture.
+        if ((currentTeleporter.textureType != "" && !currentlyDoingTransition) || (currentTeleporter.teleporterType == "hole" && currentTeleporter.textureType != "")) {
+
+            // Check if texture has already been loaded, preventing flickering due to texture reloading.
+            if (!(currentTeleporter.textureType + "-" + currentTeleporter.textureName in mapTextures)) {
+                const texture = new Image();
+                texture.src = "assets/textures/terrain/" + currentTeleporter.textureType + "/" + currentTeleporter.textureName + ".png";
+                mapTextures[currentTeleporter.textureType + "-" + currentTeleporter.textureName] = texture;
+            }
+
+            // Pre-load any door type teleporters secondary textures if they are not blank.
+            if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTextureType != "" && !(currentTeleporter.useTextureType + "-" + currentTeleporter.useTextureName in mapTextures)) {
+                const texture = new Image();
+                texture.src = "assets/textures/terrain/" + currentTeleporter.useTextureType + "/" + currentTeleporter.useTextureName + ".png";
+                mapTextures[currentTeleporter.useTextureType + "-" + currentTeleporter.useTextureName] = texture;
+            }
+            context.drawImage(mapTextures[currentTeleporter.textureType + "-" + currentTeleporter.textureName], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+        
+        } else if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTextureType != "" && currentlyDoingTransition) {
+            context.drawImage(mapTextures[currentTeleporter.useTextureType + "-" + currentTeleporter.useTextureName], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+        
+        } else {
+            // Draw the teleporter with the default colour.
+            context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+        }
+
+        
     }
 
     // Check player movement.
@@ -190,9 +219,62 @@ function drawGame() {
         currentOrientation = 3;
         movePlayer(0, 1);
     } 
+
+    var decorationsInFrontOfPlayer = [];
+    
+    renderCellOffset = 3;
+    maximumXRender = (currentPlayerXPosition + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
+    minimumXRender = (currentPlayerXPosition - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
+    maximumYRender = (currentPlayerYPosition + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
+    minimumYRender = (currentPlayerYPosition - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
+
+    // Go through each decoration, and determine if they need to be rendered before or after the player is drawn.
+    for (var i = 0; i < gameMapDecorations.length; i++) {
+
+        const currentDecoration = gameMapDecorations[i];
+
+        // Check if texture has already been loaded, preventing flickering due to texture reloading.
+        if (!(currentDecoration.textureType + "-" + currentDecoration.textureName in mapTextures)) {
+            const texture = new Image();
+            texture.src = "assets/textures/terrain/" + currentDecoration.textureType + "/" + currentDecoration.textureName + ".png";
+            mapTextures[currentDecoration.textureType + "-" + currentDecoration.textureName] = texture;
+        }
+
+        // Check if the decoration should be infront of player.
+        if (currentDecoration.zIndex == 1 || ((currentDecoration.y + currentDecoration.height - 1) > currentPlayerYPosition && currentDecoration.zIndex != -1)) {
+            decorationsInFrontOfPlayer.push(currentDecoration);
+            continue;
+        }
+
+        // Check the decoration is visible on the screen.
+        if (currentDecoration.visible == 0 || currentDecoration.x > maximumXRender || currentDecoration.x < minimumXRender || currentDecoration.y > maximumYRender || currentDecoration.y < minimumYRender) {
+            continue;
+        }
+
+        
+
+        context.drawImage(mapTextures[currentDecoration.textureType + "-" + currentDecoration.textureName], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+    }
+
     
     // Draw player,
     drawPlayer();
+
+    // Draw any remaining decorations
+    for (var i = 0; i < decorationsInFrontOfPlayer.length; i++) {
+
+        const currentDecoration = decorationsInFrontOfPlayer[i];
+        
+        console.log(currentDecoration);
+
+        // Check the decoration is visible on the screen.
+        if (currentDecoration.visible == 0 || currentDecoration.x > maximumXRender || currentDecoration.x < minimumXRender || currentDecoration.y > maximumYRender || currentDecoration.y < minimumYRender) {
+            continue;
+        }
+
+        context.drawImage(mapTextures[currentDecoration.textureType + "-" + currentDecoration.textureName], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+    
+    }
     
     // Control Screen Opacity
     if (transitionOpacity != 0) {
@@ -231,8 +313,6 @@ async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTe
     // Check if the player will walk into a teleporter.
     var currentTeleporter = gameMapTeleporters.find((teleporter) => teleporter.x == newPlayerXPosition && teleporter.y == newPlayerYPosition);
     if (currentTeleporter != null && currentTeleporter.enabled == 1) {
-
-        console.log(xIncrease,yIncrease,currentTeleporter.walkable);
 
         // Ensure that horizontal movement is allowed by the teleporter.
         if ((xIncrease == 1 && currentTeleporter.walkable[0] != 1) || (xIncrease == -1 && currentTeleporter.walkable[1] != 1)) {
@@ -362,6 +442,7 @@ async function doSceneTransition(destinationMapSrc, destinationPosition, destina
 
     // Lock player controls if they arent already.
     lockPlayerControls = true;
+    currentlyDoingTransition = true;
 
     await sleep(200);
 
@@ -385,9 +466,12 @@ async function doSceneTransition(destinationMapSrc, destinationPosition, destina
         await sleep(20);
     }
     
+    // Ensure variables have been set properly.
     transitionOpacity = 0;
     currentPlayerXPosition = destinationPosition[0];
     currentPlayerYPosition = destinationPosition[1];
     currentOrientation = destinationOrientation;
+
     lockPlayerControls = false;
+    currentlyDoingTransition = false;
 }

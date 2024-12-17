@@ -22,7 +22,7 @@
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
-    {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
+    {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
@@ -38,9 +38,9 @@
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
-    {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
-    {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
-    {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
+    {"textureType":"floor","textureName":"dirt_1","walkable":[0,0,0,0]},
+    {"textureType":"floor","textureName":"dirt_1","walkable":[0,0,0,0]},
+    {"textureType":"floor","textureName":"dirt_1","walkable":[0,0,0,0]},
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
@@ -54,9 +54,9 @@
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
-    {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
-    {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
-    {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
+    {"textureType":"floor","textureName":"dirt_1","walkable":[0,0,0,0]},
+    {"textureType":"floor","textureName":"dirt_1","walkable":[0,0,0,1]},
+    {"textureType":"floor","textureName":"dirt_1","walkable":[0,0,0,0]},
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]},
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
@@ -374,6 +374,9 @@
     {"textureType":"floor","textureName":"dirt_1","walkable":[1,1,1,1]}
   ],
   "teleporters":[
-    {"x":2,"y":3,"walkable":[0,0,0,1],"destination":"second","destinationPos":[3,5],"orientation":2,"visible":1,"enabled":1,"textureType":"","textureName":"","teleporterType":"door","useTextureType":"","useTextureName":""}
+    {"x":2,"y":3,"walkable":[0,0,0,1],"destination":"second","destinationPos":[3,5],"orientation":2,"visible":1,"enabled":1,"textureType":"building","textureName":"green_door_1_closed","teleporterType":"door","useTextureType":"building","useTextureName":"green_door_1_open"}
+  ],
+  "decorations":[
+    {"x":1,"y":1,"visible":1,"textureType":"building","textureName":"red_house_1","width":3,"height":3,"zIndex":0}
   ]
 }
