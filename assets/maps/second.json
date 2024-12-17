@@ -61,5 +61,7 @@
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]},
     {"textureType":"obstacle","textureName":"wall_1","walkable":[0,0,0,0]}
   ],
-  "teleporters":[]
+  "teleporters":[
+    {"x":3,"y":6,"walkable":[0,0,1,0],"destination":"spawn","destinationPos":[2,4],"orientation":3,"visible":1,"enabled":1,"textureType":"","textureName":"","teleporterType":"hole"}
+  ]
 }

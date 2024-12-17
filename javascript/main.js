@@ -3,6 +3,7 @@ var context = null;
 
 // The default map file
 const defaultMapFile = "assets/maps/spawn.json";
+var currentMap = null;
 
 // The total size of the map.
 var mapWidth = 0;
@@ -52,8 +53,11 @@ var gameMapTeleporters = [];
 // Player sprites.
 var playerSprites = null;
 
-// Get canvas and context of first load of page.
+// Screen transition brightness.
+var transitionOpacity = 0;
 
+
+// Get canvas and context of first load of page.
 window.onload = function() {
     canvas = document.getElementById("gameCanvas");
     context = canvas.getContext('2d');
@@ -76,7 +80,7 @@ function mainGameLoop() {
 
     // Equivalent of a while(true) loop to run infinitely.
     function loop() {
-        
+
         // Draw the games tiles.
         drawGame();
 
@@ -93,6 +97,7 @@ async function readMapFile(src) {
     const mapData = await response.json();
     console.log(mapData);
 
+    currentMap = mapData.mapName;
     currentPlayerXPosition = mapData.defaultSpawn[0];
     currentPlayerYPosition = mapData.defaultSpawn[1];
     mapWidth = mapData.mapSize[0];
@@ -159,7 +164,7 @@ function drawGame() {
         const currentTeleporter = gameMapTeleporters[i];
 
         // Check the teleporter is visible on the screen.
-        if (currentTeleporter.x > maximumXRender || currentTeleporter.x < minimumXRender || currentTeleporter.y > maximumYRender || currentTeleporter.y < minimumYRender) {
+        if (currentTeleporter.visible == 0 || currentTeleporter.x > maximumXRender || currentTeleporter.x < minimumXRender || currentTeleporter.y > maximumYRender || currentTeleporter.y < minimumYRender) {
             continue;
         }
 
@@ -189,6 +194,11 @@ function drawGame() {
     // Draw player,
     drawPlayer();
     
+    // Control Screen Opacity
+    if (transitionOpacity != 0) {
+        context.fillStyle = "rgba(0,0,0," + transitionOpacity + ")";
+        context.fillRect(0, 0, screenCellWidthAmount * tileSize, screenCellHeightAmount * tileSize);
+    }
 
     // Update FPS.
     var second = Math.floor(Date.now()/1000);
@@ -207,7 +217,7 @@ function drawGame() {
 }
 
 // Move the player when requested.
-async function movePlayer(xIncrease, yIncrease) {
+async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTeleporter = false) {
 
     // Check if player controls are locked.
     if (lockPlayerControls) {
@@ -218,30 +228,69 @@ async function movePlayer(xIncrease, yIncrease) {
     const newPlayerXPosition = currentPlayerXPosition + xIncrease;
     const newPlayerYPosition = currentPlayerYPosition + yIncrease;
 
-    // Check the player will not be moving outside the map.
-    if (newPlayerXPosition < 0 || newPlayerXPosition >= mapWidth || newPlayerYPosition < 0 || newPlayerYPosition >= mapHeight) {
-        return;
-    }
+    // Check if the player will walk into a teleporter.
+    var currentTeleporter = gameMapTeleporters.find((teleporter) => teleporter.x == newPlayerXPosition && teleporter.y == newPlayerYPosition);
+    if (currentTeleporter != null && currentTeleporter.enabled == 1) {
 
-    // Get the position of the new cell to be walked onto.
-    const newCell = gameMapCells[newPlayerYPosition * mapWidth + newPlayerXPosition];
+        console.log(xIncrease,yIncrease,currentTeleporter.walkable);
 
-    // Ensure that horizontal movement is allowed by the new cell.
-    if ((xIncrease == -1 && newCell.walkable[0] != 1) || (xIncrease == 1 && newCell.walkable[1] != 1)) {
-        return;
-    }
+        // Ensure that horizontal movement is allowed by the teleporter.
+        if ((xIncrease == 1 && currentTeleporter.walkable[0] != 1) || (xIncrease == -1 && currentTeleporter.walkable[1] != 1)) {
+            return;
+        }
 
-    // Ensure that vertical movement is allowed by the new cell.
-    if ((yIncrease == -1 && newCell.walkable[2] != 1) || (yIncrease == 1 && newCell.walkable[3] != 1)) {
-        return;
+        // Ensure that vertical movement is allowed by the teleporter.
+        if ((yIncrease == 1 && currentTeleporter.walkable[2] != 1) || (yIncrease == -1 && currentTeleporter.walkable[3] != 1)) {
+            return;
+        }
+
+        usingTeleporter = true;
+        duration *= 2;
+        lockPlayerControls = true;
+        doSceneTransition("assets/maps/" + currentTeleporter.destination + ".json", currentTeleporter.destinationPos, currentTeleporter.orientation);
+
+    } else {
+
+        // Check the player will not be moving outside the map.
+        if (newPlayerXPosition < 0 || newPlayerXPosition >= mapWidth || newPlayerYPosition < 0 || newPlayerYPosition >= mapHeight) {
+            return;
+        }
+
+        // Get the position of the new cell to be walked onto.
+        const newCell = gameMapCells[newPlayerYPosition * mapWidth + newPlayerXPosition];
+        
+        // Ensure that horizontal movement is allowed from either the left or the right.
+        if ((xIncrease == -1 && newCell.walkable[0] != 1) || (xIncrease == 1 && newCell.walkable[1] != 1)) {
+            return;
+        }
+
+        // Ensure that vertical movement is allowed from either up or down.
+        if ((yIncrease == -1 && newCell.walkable[2] != 1) || (yIncrease == 1 && newCell.walkable[3] != 1)) {
+            return;
+        }
+
     }
 
     // Determine amount of movement per step, and in what direction.
     const movementXAmount = (Math.abs(newPlayerXPosition - currentPlayerXPosition) / movementStepAmount) * -xIncrease;
     const movementYAmount = (Math.abs(newPlayerYPosition - currentPlayerYPosition) / movementStepAmount) * -yIncrease;
 
+    if (usingTeleporter) {
+        await sleep(300);
+    }
+
+    var map = currentMap;
+
     // Do each movement step.
     for (var i = 1; i <= movementStepAmount; i++) {
+
+        if (currentMap != map) {
+            currentPlayerXDecimalMovement = 0;
+            currentPlayerYDecimalMovement = 0;
+            currentlyStepping = false;
+            drawPlayer();
+            break;
+        }
         
         currentPlayerXDecimalMovement += movementXAmount;
         currentPlayerYDecimalMovement += movementYAmount;
@@ -266,20 +315,21 @@ async function movePlayer(xIncrease, yIncrease) {
 
         drawPlayer();
 
-        await sleep(movementTime / movementStepAmount);
+        await sleep(duration / movementStepAmount);
     }
 
     // Update player position.
     currentPlayerXDecimalMovement = 0;
     currentPlayerYDecimalMovement = 0;
-    currentPlayerXPosition += xIncrease;
-    currentPlayerYPosition += yIncrease;
 
-    // Check if the player is standing on a teleporter.
-    var currentTeleporter = gameMapTeleporters.find((teleporter) => teleporter.x == currentPlayerXPosition && teleporter.y == currentPlayerYPosition);
-    if (currentTeleporter != null) {
-        lockPlayerControls = true;
+    // Prevent aditional moving after map change.
+    if (currentMap == map) {
+        currentPlayerXPosition += xIncrease;
+        currentPlayerYPosition += yIncrease;
     }
+
+    
+    
 }
 
 function sleep(ms) {
@@ -308,10 +358,36 @@ function drawPlayer() {
     context.drawImage(playerSprites, currentStep, (currentOrientation * tileSize), tileSize/2, tileSize, tileSize*Math.floor(screenCellWidthAmount/2), tileSize*Math.floor(screenCellHeightAmount/2) - tileSize, tileSize, tileSize*2);
 }
 
-function doSceneTransition() {
+async function doSceneTransition(destinationMapSrc, destinationPosition, destinationOrientation) {
 
     // Lock player controls if they arent already.
     lockPlayerControls = true;
 
+    await sleep(200);
 
+    for (var i = 0; i < 20; i++) {
+        transitionOpacity += 0.05;
+        await sleep(20);
+    }
+
+    await readMapFile(destinationMapSrc);
+
+    currentPlayerXPosition = destinationPosition[0];
+    currentPlayerYPosition = destinationPosition[1];
+    currentPlayerXDecimalMovement = 0;
+    currentPlayerYDecimalMovement = 0;
+    currentOrientation = destinationOrientation;
+
+    await sleep(20);
+
+    for (var i = 0; i < 20; i++) {
+        transitionOpacity -= 0.05;
+        await sleep(20);
+    }
+    
+    transitionOpacity = 0;
+    currentPlayerXPosition = destinationPosition[0];
+    currentPlayerYPosition = destinationPosition[1];
+    currentOrientation = destinationOrientation;
+    lockPlayerControls = false;
 }
