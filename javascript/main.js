@@ -44,6 +44,8 @@ var currentlyStepping = false;
 var currentStepCount = 0;
 const amountOfStepsBetweenFrameSwaps = 2; //ms
 
+const tapRotationDuration = 120; // ms
+
 // Map Texture Storage.
 var mapTextures = {};
 
@@ -65,11 +67,23 @@ window.onload = function() {
     context = canvas.getContext('2d');
 
     document.addEventListener('keydown', function(event) {
-        keyPresses[event.key] = true;
+        // Check the key is not being held down.
+        if (!keyPresses[event.key] || keyPresses[event.key] == -1) {
+            keyPresses[event.key] = Date.now();
+        }
     });
 
     document.addEventListener('keyup', function(event) {
-        keyPresses[event.key] = false;
+
+        // Check that the key has not already been released.
+        if (keyPresses[event.key] != -1) {
+
+            // Check if the key was quickly tapped.
+            if (tapRotationDuration > Date.now() - keyPresses[event.key]) {
+                tapRotation(event.key);
+            }
+            keyPresses[event.key] = -1;
+        }
     });
 
     readMapFile(defaultMapFile);
@@ -97,7 +111,6 @@ function mainGameLoop() {
 async function readMapFile(src) {
     const response = await fetch(src);
     const mapData = await response.json();
-    console.log(mapData);
 
     currentMap = mapData.mapName;
     currentPlayerXPosition = mapData.defaultSpawn[0];
@@ -197,8 +210,6 @@ function drawGame() {
             // Draw the teleporter with the default colour.
             context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
         }
-
-        
     }
 
     // Check player movement.
@@ -206,16 +217,16 @@ function drawGame() {
         // Do nothing if the player controls are locked.
     } else if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
         // Do nothing if player is already moving.
-    } else if (keyPresses["ArrowLeft"]) {
+    } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || currentOrientation == 0)) {
         currentOrientation = 0;
         movePlayer(-1, 0);
-    } else if (keyPresses["ArrowRight"]) {
+    } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || currentOrientation == 1)) {
         currentOrientation = 1;
         movePlayer(1, 0);
-    } else if (keyPresses["ArrowUp"]) {
+    } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || currentOrientation == 2)) {
         currentOrientation = 2;
         movePlayer(0, -1);
-    } else if (keyPresses["ArrowDown"]) {
+    } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || currentOrientation == 3)) {
         currentOrientation = 3;
         movePlayer(0, 1);
     } 
@@ -264,8 +275,6 @@ function drawGame() {
     for (var i = 0; i < decorationsInFrontOfPlayer.length; i++) {
 
         const currentDecoration = decorationsInFrontOfPlayer[i];
-        
-        console.log(currentDecoration);
 
         // Check the decoration is visible on the screen.
         if (currentDecoration.visible == 0 || currentDecoration.x > maximumXRender || currentDecoration.x < minimumXRender || currentDecoration.y > maximumYRender || currentDecoration.y < minimumYRender) {
@@ -474,4 +483,22 @@ async function doSceneTransition(destinationMapSrc, destinationPosition, destina
 
     lockPlayerControls = false;
     currentlyDoingTransition = false;
+}
+
+function tapRotation(key) {
+    console.log(key, keyPresses);
+    // Check player movement.
+    if (lockPlayerControls) {
+        // Do nothing if the player controls are locked.
+    } else if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
+        // Do nothing if player is already moving.
+    } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1) {
+        currentOrientation = 0;
+    } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1) {
+        currentOrientation = 1;
+    } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1) {
+        currentOrientation = 2;
+    } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1) {
+        currentOrientation = 3;
+    } 
 }
