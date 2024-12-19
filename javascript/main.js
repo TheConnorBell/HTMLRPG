@@ -53,6 +53,7 @@ var mapTextures = {};
 var gameMapCells = [];
 var gameMapTeleporters = [];
 var gameMapDecorations = [];
+var gameMapInteractors = [];
 
 // Player sprites.
 var playerSprites = null;
@@ -109,6 +110,8 @@ function mainGameLoop() {
 }
 
 async function readMapFile(src) {
+
+    // Get the new map file.
     const response = await fetch(src);
     const mapData = await response.json();
 
@@ -118,9 +121,47 @@ async function readMapFile(src) {
     mapWidth = mapData.mapSize[0];
     mapHeight = mapData.mapSize[1];
     currentOrientation = mapData.defaultOrientation;
+    
+    // Clear map textures to remove unused textures from memory.
+    mapTextures = []
+
+    // Pre-load all tile textures.
     gameMapCells = mapData.cells;
+    for (var i = 0; i < gameMapCells.length; i++) {
+        loadTextures(gameMapCells[i].texturePath);
+    }
+
+    // Pre-load all teleporter textures annd use=textures.
     gameMapTeleporters = mapData.teleporters;
+    for (var i = 0; i < gameMapTeleporters.length; i++) {
+        loadTextures(gameMapTeleporters[i].texturePath)
+        if (gameMapTeleporters[i].teleporterType == "door") {
+            loadTextures(gameMapTeleporters[i].useTexturePath);
+        }
+    }
+
+    // Pre-load all decoration object textures.
     gameMapDecorations = mapData.decorations;
+    for (var i = 0; i < gameMapDecorations.length; i++) {
+        loadTextures(gameMapDecorations[i].texturePath);
+    }
+
+    // Pre-load all interactors and NPC textures.
+    gameMapInteractors = mapData.interactors;
+    for (var i = 0; i < gameMapInteractors.length; i++) {
+        loadTextures(gameMapInteractors[i].texturePath);
+    }
+}
+
+function loadTextures(texturePath) {
+    if (!texturePath) {
+        return;
+    }
+    if (mapTextures[texturePath] == undefined) {
+        const newTexture = new Image();
+        newTexture.src = "assets/textures/" + texturePath + ".png";
+        mapTextures[texturePath] = newTexture;
+    }
 }
 
 // Draw each updated frame.
@@ -152,15 +193,7 @@ function drawGame() {
             }
 
             const cell = gameMapCells[((mapY*mapWidth)+mapX)];
-
-            // Check if texture has already been loaded, preventing flickering due to texture reloading.
-            if (!(cell.textureType + "-" + cell.textureName in mapTextures)) {
-                const texture = new Image();
-                texture.src = "assets/textures/terrain/" + cell.textureType + "/" + cell.textureName + ".png";
-                mapTextures[cell.textureType + "-" + cell.textureName] = texture;
-            }
-
-            const tex = mapTextures[cell.textureType + "-" + cell.textureName];
+            const tex = mapTextures[cell.texturePath];
 
             // Draw the current tile at the correct position with the correct scale.
             context.drawImage(tex, Math.floor((x + currentPlayerXDecimalMovement) * tileSize), Math.floor((y + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
@@ -187,24 +220,11 @@ function drawGame() {
 
         // Draw teleporters using the correct/no texture.
         if ((currentTeleporter.textureType != "" && !currentlyDoingTransition) || (currentTeleporter.teleporterType == "hole" && currentTeleporter.textureType != "")) {
-
-            // Check if texture has already been loaded, preventing flickering due to texture reloading.
-            if (!(currentTeleporter.textureType + "-" + currentTeleporter.textureName in mapTextures)) {
-                const texture = new Image();
-                texture.src = "assets/textures/terrain/" + currentTeleporter.textureType + "/" + currentTeleporter.textureName + ".png";
-                mapTextures[currentTeleporter.textureType + "-" + currentTeleporter.textureName] = texture;
-            }
-
-            // Pre-load any door type teleporters secondary textures if they are not blank.
-            if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTextureType != "" && !(currentTeleporter.useTextureType + "-" + currentTeleporter.useTextureName in mapTextures)) {
-                const texture = new Image();
-                texture.src = "assets/textures/terrain/" + currentTeleporter.useTextureType + "/" + currentTeleporter.useTextureName + ".png";
-                mapTextures[currentTeleporter.useTextureType + "-" + currentTeleporter.useTextureName] = texture;
-            }
-            context.drawImage(mapTextures[currentTeleporter.textureType + "-" + currentTeleporter.textureName], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+  
+            context.drawImage(mapTextures[currentTeleporter.texturePath], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
         
         } else if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTextureType != "" && currentlyDoingTransition) {
-            context.drawImage(mapTextures[currentTeleporter.useTextureType + "-" + currentTeleporter.useTextureName], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+            context.drawImage(mapTextures[currentTeleporter.useTexturePath], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
         
         } else {
             // Draw the teleporter with the default colour.
@@ -244,13 +264,6 @@ function drawGame() {
 
         const currentDecoration = gameMapDecorations[i];
 
-        // Check if texture has already been loaded, preventing flickering due to texture reloading.
-        if (!(currentDecoration.textureType + "-" + currentDecoration.textureName in mapTextures)) {
-            const texture = new Image();
-            texture.src = "assets/textures/terrain/" + currentDecoration.textureType + "/" + currentDecoration.textureName + ".png";
-            mapTextures[currentDecoration.textureType + "-" + currentDecoration.textureName] = texture;
-        }
-
         // Check if the decoration should be infront of player.
         if (currentDecoration.zIndex == 1 || ((currentDecoration.y + currentDecoration.height - 1) > currentPlayerYPosition && currentDecoration.zIndex != -1)) {
             decorationsInFrontOfPlayer.push(currentDecoration);
@@ -262,16 +275,21 @@ function drawGame() {
             continue;
         }
 
-        
-
-        context.drawImage(mapTextures[currentDecoration.textureType + "-" + currentDecoration.textureName], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
     }
 
+    // Draw all interactors/NPCs behind the player.
+    var interactorsInFrontOfPlayer = [];
+
+    //for (var i = 0; i < gameMapInteractors.length; i++) {
+
+    //}
+
     
-    // Draw player,
+    // Draw player.
     drawPlayer();
 
-    // Draw any remaining decorations
+    // Draw any remaining decorations.
     for (var i = 0; i < decorationsInFrontOfPlayer.length; i++) {
 
         const currentDecoration = decorationsInFrontOfPlayer[i];
@@ -281,11 +299,11 @@ function drawGame() {
             continue;
         }
 
-        context.drawImage(mapTextures[currentDecoration.textureType + "-" + currentDecoration.textureName], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
     
     }
     
-    // Control Screen Opacity
+    // Control Screen Opacity.
     if (transitionOpacity != 0) {
         context.fillStyle = "rgba(0,0,0," + transitionOpacity + ")";
         context.fillRect(0, 0, screenCellWidthAmount * tileSize, screenCellHeightAmount * tileSize);
