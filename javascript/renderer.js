@@ -33,13 +33,11 @@ export class Renderer {
             const newTexture = new Image();
             newTexture.src = this.defaultTextureFolderPath + texturePath + ".png";
             this.textureMap[texturePath] = newTexture;
-            console.log("loaded " + texturePath + ", ");
-            console.log(this.textureMap)
         }
     }
 
     drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, player, mapWidth, mapHeight, currentlyDoingTransition) {
-        
+
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -140,10 +138,10 @@ export class Renderer {
             if (player.getY() > currentInteractor.y) {
                 if (this.textureMap[currentInteractor.texturePath]) {
                     // Draw Interactor sprite.
-                    context.drawImage(this.textureMap[currentInteractor.texturePath], 0, this.tileSize * currentInteractor.orientation, this.tileSize/2, this.tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize*2);
+                    this.context.drawImage(this.textureMap[currentInteractor.texturePath], 0, this.tileSize * currentInteractor.orientation, this.tileSize/2, this.tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize*2);
                 } else {
-                    context.fillStyle = "#17babf";
-                    context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize);
+                    this.context.fillStyle = "#17babf";
+                    this.context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize);
                 }
             } else {
                 // Move the interactor the the array to draw infront of the player.
@@ -176,10 +174,10 @@ export class Renderer {
 
             if (this.textureMap[currentInteractor.texturePath]) {
                 // Draw Interactor sprite.
-                context.drawImage(this.textureMap[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
+                this.context.drawImage(this.textureMap[currentInteractor.texturePath], 0, this.tileSize * currentInteractor.orientation, this.tileSize/2, this.tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize*2);
             } else {
-                context.fillStyle = "#17babf";
-                context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
+                this.context.fillStyle = "#17babf";
+                this.context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize);
             }
         }
 

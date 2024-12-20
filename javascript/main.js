@@ -169,17 +169,13 @@ function drawGame() {
         // Do nothing if the player controls are locked.
     } else if (player.getSubX() != 0 || player.getSubY() != 0) {
         // Do nothing if player is already moving.
-    } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || currentOrientation == 0)) {
-        currentOrientation = 0;
+    } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || player.getOrientation() == 0)) {
         movePlayer(-1, 0, 0);
-    } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || currentOrientation == 1)) {
-        currentOrientation = 1;
+    } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || player.getOrientation() == 1)) {
         movePlayer(1, 0, 1);
-    } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || currentOrientation == 2)) {
-        currentOrientation = 2;
+    } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || player.getOrientation() == 2)) {
         movePlayer(0, -1, 2);
-    } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || currentOrientation == 3)) {
-        currentOrientation = 3;
+    } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || player.getOrientation() == 3)) {
         movePlayer(0, 1, 3);
     } 
 
@@ -207,151 +203,6 @@ function drawGame() {
     document.getElementById("SubPosition").innerHTML = "Sub Position X=" + player.getSubX() + " Y=" + player.getSubY();
 
     return;
-
-    // Clear canvas to prevent seeing previous frames around edge of map.
-    context.clearRect(0, 0, canvas.width, canvas.height);
-
-    context.imageSmoothingEnabled = false;
-
-    // Get the offset the canvas has from the centre of the canvas screen.
-    const xOffset = Math.floor(player.getX()) - Math.floor(screenCellWidthAmount / 2);
-    const yOffset = Math.floor(player.getY()) - Math.floor(screenCellHeightAmount / 2);
-
-    const playerX = player.getSubX();
-    const playerY = player.getSubY();
-
-    // Draw each cell visible on screen.
-    for (var y = -1; y < screenCellHeightAmount + 1; y++) {
-        for (var x = -1; x < screenCellWidthAmount + 1; x++) {
-
-            // Get the tile position based on screen offset.
-            const mapX = xOffset + x;
-            const mapY = yOffset + y;
-
-            // Determine if the tile should be rendered by checking that it is within view of the camera.
-            if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
-                continue;
-            }
-
-            const cell = gameMapCells[((mapY*mapWidth)+mapX)];
-            const tex = textureMap[cell.texturePath];
-
-            // Draw the current tile at the correct position with the correct scale.
-            context.drawImage(tex, Math.floor((x + playerX) * tileSize), Math.floor((y + playerY) * tileSize), tileSize, tileSize);
-        }
-    }
-
-    var renderCellOffset = 1;
-    var maximumXRender = (player.getX() + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
-    var minimumXRender = (player.getX() - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
-    var maximumYRender = (player.getY() + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
-    var minimumYRender = (player.getY() - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
-    // Default teleporter fill colour.
-    context.fillStyle = "#15d445";
-
-    // Draw teleporters onto the visible game map.
-    for (var i = 0; i < gameMapTeleporters.length; i++) {
-
-        const currentTeleporter = gameMapTeleporters[i];
-
-        // Check the teleporter is visible on the screen.
-        if (currentTeleporter.visible == 0 || currentTeleporter.x > maximumXRender || currentTeleporter.x < minimumXRender || currentTeleporter.y > maximumYRender || currentTeleporter.y < minimumYRender) {
-            continue;
-        }
-
-        // Draw teleporters using the correct/no texture.
-        if ((currentTeleporter.textureType != "" && !currentlyDoingTransition) || (currentTeleporter.teleporterType == "hole" && currentTeleporter.textureType != "")) {
-  
-            context.drawImage(textureMap[currentTeleporter.texturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
-        
-        } else if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTextureType != "" && currentlyDoingTransition) {
-            context.drawImage(textureMap[currentTeleporter.useTexturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
-        
-        } else {
-            // Draw the teleporter with the default colour.
-            context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
-        }
-    }
-
-    var decorationsInFrontOfPlayer = [];
-    
-    renderCellOffset = 3;
-    maximumXRender = (player.getX() + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
-    minimumXRender = (player.getX() - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
-    maximumYRender = (player.getY() + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
-    minimumYRender = (player.getY() - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
-
-    // Go through each decoration, and determine if they need to be rendered before or after the player is drawn.
-    for (var i = 0; i < gameMapDecorations.length; i++) {
-
-        const currentDecoration = gameMapDecorations[i];
-
-        // Check if the decoration should be infront of player.
-        if (currentDecoration.zIndex == 1 || ((currentDecoration.y + currentDecoration.height - 1) > player.getY() && currentDecoration.zIndex != -1)) {
-            decorationsInFrontOfPlayer.push(currentDecoration);
-            continue;
-        }
-
-        // Check the decoration is visible on the screen.
-        if (currentDecoration.visible == 0 || currentDecoration.x > maximumXRender || currentDecoration.x < minimumXRender || currentDecoration.y > maximumYRender || currentDecoration.y < minimumYRender) {
-            continue;
-        }
-
-        context.drawImage(textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
-    }
-
-    // Draw all interactors/NPCs behind the player.
-    var interactorsInFrontOfPlayer = [];
-
-    for (var i = 0; i < gameMapInteractors.length; i++) {
-        const currentInteractor = gameMapInteractors[i];
-
-        // Check if the interactor should be infront of or behind the player.
-        if (player.getY() > currentInteractor.y) {
-            if (textureMap[currentInteractor.texturePath]) {
-                // Draw Interactor sprite.
-                context.drawImage(textureMap[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
-            } else {
-                context.fillStyle = "#17babf";
-                context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
-            }
-        } else {
-            // Move the interactor the the array to draw infront of the player.
-            interactorsInFrontOfPlayer.push(currentInteractor);
-        }
-    }
-
-    
-    // Draw player.
-    drawPlayer();
-
-    // Draw any remaining decorations.
-    for (var i = 0; i < decorationsInFrontOfPlayer.length; i++) {
-
-        const currentDecoration = decorationsInFrontOfPlayer[i];
-
-        // Check the decoration is visible on the screen.
-        if (currentDecoration.visible == 0 || currentDecoration.x > maximumXRender || currentDecoration.x < minimumXRender || currentDecoration.y > maximumYRender || currentDecoration.y < minimumYRender) {
-            continue;
-        }
-
-        context.drawImage(textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
-    
-    }
-
-    // Draw any remaining interactors.
-    for (var i = 0; i < interactorsInFrontOfPlayer.length; i++) {
-
-        const currentInteractor = interactorsInFrontOfPlayer[i];
-
-        if (textureMap[currentInteractor.texturePath]) {
-            // Draw Interactor sprite.
-            context.drawImage(textureMap[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
-        } else {
-            context.fillStyle = "#17babf";
-            context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
-        }
-    }
 }
 
 // Move the player when requested.
@@ -421,6 +272,7 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
     const movementYAmount = (Math.abs(newPlayerYPosition - player.getY()) / movementStepAmount) * -yIncrease;
 
     if (usingTeleporter) {
+        player.move(0, 0, orientation);
         await sleep(300);
     }
 
@@ -455,8 +307,6 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
             }
         }
 
-        drawPlayer();
-
         await sleep(duration / movementStepAmount);
     }
 
@@ -470,28 +320,6 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-function drawPlayer() {
-
-    // Get player sprites if it doesn't exist yet.
-    if (playerSprites == null) {
-        const plrSprite = new Image();
-        plrSprite.src = "assets/textures/characters/blue_knight.png";
-        playerSprites = plrSprite;
-    }
-
-    var currentStep = 0;
-
-    // Determine what leg, if any to step with.
-    if (currentlyStepping && lastLeg == 0) {
-        currentStep = tileSize;
-    } else if (currentlyStepping && lastLeg == 1) {
-        currentStep = tileSize/2;
-    }
-
-    // Draw player sprite.
-    context.drawImage(playerSprites, currentStep, (currentOrientation * tileSize), tileSize/2, tileSize, tileSize*Math.floor(screenCellWidthAmount/2), tileSize*Math.floor(screenCellHeightAmount/2) - tileSize, tileSize, tileSize*2);
 }
 
 async function doSceneTransition(destinationMapSrc, destinationPosition, destinationOrientation) {
