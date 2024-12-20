@@ -44,9 +44,26 @@ export class Renderer {
         const playerX = player.getSubX();
         const playerY = player.getSubY();
 
+        for (var i = 0; i < gameMapCells.length; i++) {
+            const cell = gameMapCells[i];
+
+            const mapX = cell.x - xOffset;
+            const mapY = cell.y - yOffset;
+
+            const tileOffset = 1;
+
+            // Determine if the tile should be rendered by checking that it is within view of the camera.
+            if (mapX < -tileOffset || mapX >= mapWidth + tileOffset || mapY < -tileOffset || mapY >= mapHeight + tileOffset) {
+                continue;
+            }
+
+            this.drawTile(this.textureMap[cell.texturePath], Math.floor((mapX + playerX) * this.tileSize), Math.floor((mapY + playerY) * this.tileSize));
+        }
+
         // Draw each cell visible on screen.
         for (var y = -1; y < this.screenCellHeightAmount + 1; y++) {
             for (var x = -1; x < this.screenCellWidthAmount + 1; x++) {
+                continue;
 
                 // Get the tile position based on screen offset.
                 const mapX = xOffset + x;
@@ -61,7 +78,8 @@ export class Renderer {
                 const tex = this.textureMap[cell.texturePath];
 
                 // Draw the current tile at the correct position with the correct scale.
-                this.context.drawImage(tex, Math.floor((x + playerX) * this.tileSize), Math.floor((y + playerY) * this.tileSize), this.tileSize, this.tileSize);
+                //this.context.drawImage(tex, Math.floor((x + playerX) * this.tileSize), Math.floor((y + playerY) * this.tileSize), this.tileSize, this.tileSize);
+                this.drawTile(this.textureMap[cell.texturePath], Math.floor((x + playerX) * this.tileSize), Math.floor((y + playerY) * this.tileSize));
             }
         }
 
@@ -159,7 +177,7 @@ export class Renderer {
                 continue;
             }
 
-            context.drawImage(this.textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+            this.context.drawImage(this.textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize*currentDecoration.width, this.tileSize*currentDecoration.height);
         
         }
 
@@ -184,7 +202,7 @@ export class Renderer {
     }
 
     drawTile(texturePath, xPos, yPos) {
-
+        this.context.drawImage(texturePath, xPos, yPos, this.tileSize, this.tileSize);
     }
 
     drawCharacter() {
