@@ -17,10 +17,6 @@ export class Renderer {
     clearTextureMemory() {
         this.textureMap = {};
     }
-    
-    test() {
-        return "E";
-    }
 
     loadIntoTextureMemory(texturePath) {
         // Check the texture path exists
@@ -184,7 +180,7 @@ export class Renderer {
     }
 
     drawPlayer(player) {
-        this.context.drawImage(this.textureMap[player.getTexturePath()], 0, (player.getOrientation() * this.tileSize), this.tileSize/2, this.tileSize, this.tileSize*Math.floor(this.screenCellWidthAmount/2), this.tileSize*Math.floor(this.screenCellHeightAmount/2) - this.tileSize, this.tileSize, this.tileSize*2);
+        this.context.drawImage(this.textureMap[player.getTexturePath()], ((this.tileSize/2) * player.getCurrentWalkPose()), (player.getOrientation() * this.tileSize), this.tileSize/2, this.tileSize, this.tileSize*Math.floor(this.screenCellWidthAmount/2), this.tileSize*Math.floor(this.screenCellHeightAmount/2) - this.tileSize, this.tileSize, this.tileSize*2);
     }
 
     drawTile(texturePath, xPos, yPos) {

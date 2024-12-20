@@ -30,7 +30,6 @@ const tileSize = 32;
 var currentSecond = 0;
 var frameCount = 0;
 var prevFramesPerSecond = 0;
-var lastFrameTime = 0;
 
 // Player movement variables.
 var keyPresses = {};
@@ -40,26 +39,14 @@ var currentlyDoingTransition = false;
 
 const movementStepAmount = 8;
 const movementTime = 250; // ms
-var currentOrientation = 3;  // Left=0, Right=1, Up=2, Down=3.
-// Variable to keep track of which leg was last used to walk, LeftLeg=0, RightLeg=1.
-var lastLeg = 0;
-var currentlyStepping = false;
-var currentStepCount = 0;
-const amountOfStepsBetweenFrameSwaps = 2; //ms
 
 const tapRotationDuration = 120; // ms
-
-// Map Texture Storage.
-var textureMap = {};
 
 // Arrays of map information.
 var gameMapCells = [];
 var gameMapTeleporters = [];
 var gameMapDecorations = [];
 var gameMapInteractors = [];
-
-// Player sprites.
-var playerSprites = null;
 
 // Screen transition brightness.
 var transitionOpacity = 0;
@@ -288,24 +275,6 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
             break;
         }
         player.subMove(movementXAmount, movementYAmount, orientation);
-
-        // Determine what leg the character should be stepping with.
-        currentStepCount++;
-        
-        if (currentStepCount >= amountOfStepsBetweenFrameSwaps) {
-            currentStepCount = 0;
-            // If the character should return to the neutral stage.
-            if (currentlyStepping) {
-                currentlyStepping = false;
-            // If the character is in the neutral pose and last stepped with their left leg.
-            } else if (lastLeg == 0) {
-                lastLeg = 1;
-                currentlyStepping = true;
-            } else if (lastLeg == 1) {
-                lastLeg = 0;
-                currentlyStepping = true;
-            }
-        }
 
         await sleep(duration / movementStepAmount);
     }
