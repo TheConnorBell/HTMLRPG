@@ -1,12 +1,15 @@
 import { Player } from "./player.js";
+import { Renderer } from "./renderer.js";
 
 var canvas = null
 var context = null;
 
+// The renderer instance.
+var renderer;
+
 // The map file.
 const defaultMapFile = "assets/maps/spawn.json";
 var currentMap = null;
-
 
 // The player instance.
 const defaultPlayerSprite = "characters/blue_knight";
@@ -47,7 +50,7 @@ const amountOfStepsBetweenFrameSwaps = 2; //ms
 const tapRotationDuration = 120; // ms
 
 // Map Texture Storage.
-var mapTextures = {};
+var textureMap = {};
 
 // Arrays of map information.
 var gameMapCells = [];
@@ -87,9 +90,12 @@ window.onload = function() {
         }
     });
 
+    // Create the renderer instance.
+    renderer = new Renderer(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount);
+
     // Craete the player instance.
     player = new Player(defaultPlayerSprite, 0, 0, 3);
-    loadTexture(defaultPlayerSprite);
+    renderer.loadIntoTextureMemory(defaultPlayerSprite);
 
     readMapFile(defaultMapFile);
 
@@ -123,54 +129,84 @@ async function readMapFile(src) {
     mapWidth = mapData.mapSize[0];
     mapHeight = mapData.mapSize[1];
     player.move(mapData.defaultSpawn[0], mapData.defaultSpawn[1], mapData.defaultOrientation, true);
-    
-    // Clear map textures to remove unused textures from memory.
-    mapTextures = []
 
     // Pre-load all tile textures.
     gameMapCells = mapData.cells;
     for (var i = 0; i < gameMapCells.length; i++) {
-        loadTexture(gameMapCells[i].texturePath);
+        renderer.loadIntoTextureMemory(gameMapCells[i].texturePath);
     }
 
     // Pre-load all teleporter textures annd use=textures.
     gameMapTeleporters = mapData.teleporters;
     for (var i = 0; i < gameMapTeleporters.length; i++) {
-        loadTexture(gameMapTeleporters[i].texturePath)
+        renderer.loadIntoTextureMemory(gameMapTeleporters[i].texturePath)
         if (gameMapTeleporters[i].teleporterType == "door") {
-            loadTexture(gameMapTeleporters[i].useTexturePath);
+            renderer.loadIntoTextureMemory(gameMapTeleporters[i].useTexturePath);
         }
     }
 
     // Pre-load all decoration object textures.
     gameMapDecorations = mapData.decorations;
     for (var i = 0; i < gameMapDecorations.length; i++) {
-        loadTexture(gameMapDecorations[i].texturePath);
+        renderer.loadIntoTextureMemory(gameMapDecorations[i].texturePath);
     }
 
     // Pre-load all interactors and NPC textures.
     gameMapInteractors = mapData.interactors;
     for (var i = 0; i < gameMapInteractors.length; i++) {
-        loadTexture(gameMapInteractors[i].texturePath);
-    }
-}
-
-function loadTexture(texturePath) {
-    if (!texturePath) {
-        return;
-    }
-    if (mapTextures[texturePath] == undefined) {
-        const newTexture = new Image();
-        newTexture.src = "assets/textures/" + texturePath + ".png";
-        mapTextures[texturePath] = newTexture;
+        renderer.loadIntoTextureMemory(gameMapInteractors[i].texturePath);
     }
 }
 
 // Draw each updated frame.
 function drawGame() {
-    if (canvas == null || context == null || gameMapCells == null) {
+    if (canvas == null || context == null || gameMapCells == null || !renderer) {
         return;
     }
+
+    // Check player movement.
+    if (lockPlayerControls) {
+        // Do nothing if the player controls are locked.
+    } else if (player.getSubX() != 0 || player.getSubY() != 0) {
+        // Do nothing if player is already moving.
+    } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || currentOrientation == 0)) {
+        currentOrientation = 0;
+        movePlayer(-1, 0, 0);
+    } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || currentOrientation == 1)) {
+        currentOrientation = 1;
+        movePlayer(1, 0, 1);
+    } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || currentOrientation == 2)) {
+        currentOrientation = 2;
+        movePlayer(0, -1, 2);
+    } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || currentOrientation == 3)) {
+        currentOrientation = 3;
+        movePlayer(0, 1, 3);
+    } 
+
+    renderer.drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, player, mapWidth, mapHeight, currentlyDoingTransition);
+
+    // Control Screen Opacity.
+    if (transitionOpacity != 0) {
+        context.fillStyle = "rgba(0,0,0," + transitionOpacity + ")";
+        context.fillRect(0, 0, screenCellWidthAmount * tileSize, screenCellHeightAmount * tileSize);
+    }
+
+    // Update FPS.
+    var second = Math.floor(Date.now()/1000);
+    if (second != currentSecond) {
+        currentSecond = second;
+        prevFramesPerSecond = frameCount;
+        frameCount = 1;
+        document.getElementById("FPS").innerHTML = "FPS: " + prevFramesPerSecond;
+    } else {
+        frameCount++;
+    }
+
+    // Update Position values.
+    document.getElementById("Position").innerHTML = "Position X=" + player.getX() + " Y=" + player.getY();
+    document.getElementById("SubPosition").innerHTML = "Sub Position X=" + player.getSubX() + " Y=" + player.getSubY();
+
+    return;
 
     // Clear canvas to prevent seeing previous frames around edge of map.
     context.clearRect(0, 0, canvas.width, canvas.height);
@@ -198,7 +234,7 @@ function drawGame() {
             }
 
             const cell = gameMapCells[((mapY*mapWidth)+mapX)];
-            const tex = mapTextures[cell.texturePath];
+            const tex = textureMap[cell.texturePath];
 
             // Draw the current tile at the correct position with the correct scale.
             context.drawImage(tex, Math.floor((x + playerX) * tileSize), Math.floor((y + playerY) * tileSize), tileSize, tileSize);
@@ -226,35 +262,16 @@ function drawGame() {
         // Draw teleporters using the correct/no texture.
         if ((currentTeleporter.textureType != "" && !currentlyDoingTransition) || (currentTeleporter.teleporterType == "hole" && currentTeleporter.textureType != "")) {
   
-            context.drawImage(mapTextures[currentTeleporter.texturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
+            context.drawImage(textureMap[currentTeleporter.texturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         
         } else if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTextureType != "" && currentlyDoingTransition) {
-            context.drawImage(mapTextures[currentTeleporter.useTexturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
+            context.drawImage(textureMap[currentTeleporter.useTexturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         
         } else {
             // Draw the teleporter with the default colour.
             context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         }
     }
-
-    // Check player movement.
-    if (lockPlayerControls) {
-        // Do nothing if the player controls are locked.
-    } else if (player.getSubX() != 0 || player.getSubY() != 0) {
-        // Do nothing if player is already moving.
-    } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || currentOrientation == 0)) {
-        currentOrientation = 0;
-        movePlayer(-1, 0);
-    } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || currentOrientation == 1)) {
-        currentOrientation = 1;
-        movePlayer(1, 0);
-    } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || currentOrientation == 2)) {
-        currentOrientation = 2;
-        movePlayer(0, -1);
-    } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || currentOrientation == 3)) {
-        currentOrientation = 3;
-        movePlayer(0, 1);
-    } 
 
     var decorationsInFrontOfPlayer = [];
     
@@ -280,7 +297,7 @@ function drawGame() {
             continue;
         }
 
-        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+        context.drawImage(textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
     }
 
     // Draw all interactors/NPCs behind the player.
@@ -291,9 +308,9 @@ function drawGame() {
 
         // Check if the interactor should be infront of or behind the player.
         if (player.getY() > currentInteractor.y) {
-            if (mapTextures[currentInteractor.texturePath]) {
+            if (textureMap[currentInteractor.texturePath]) {
                 // Draw Interactor sprite.
-                context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
+                context.drawImage(textureMap[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
             } else {
                 context.fillStyle = "#17babf";
                 context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
@@ -318,7 +335,7 @@ function drawGame() {
             continue;
         }
 
-        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+        context.drawImage(textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
     
     }
 
@@ -327,35 +344,14 @@ function drawGame() {
 
         const currentInteractor = interactorsInFrontOfPlayer[i];
 
-        if (mapTextures[currentInteractor.texturePath]) {
+        if (textureMap[currentInteractor.texturePath]) {
             // Draw Interactor sprite.
-            context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
+            context.drawImage(textureMap[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
         } else {
             context.fillStyle = "#17babf";
             context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         }
     }
-    
-    // Control Screen Opacity.
-    if (transitionOpacity != 0) {
-        context.fillStyle = "rgba(0,0,0," + transitionOpacity + ")";
-        context.fillRect(0, 0, screenCellWidthAmount * tileSize, screenCellHeightAmount * tileSize);
-    }
-
-    // Update FPS.
-    var second = Math.floor(Date.now()/1000);
-    if (second != currentSecond) {
-        currentSecond = second;
-        prevFramesPerSecond = frameCount;
-        frameCount = 1;
-        document.getElementById("FPS").innerHTML = "FPS: " + prevFramesPerSecond;
-    } else {
-        frameCount++;
-    }
-
-    // Update Position values.
-    document.getElementById("Position").innerHTML = "Position X=" + player.getX() + " Y=" + player.getY();
-    document.getElementById("SubPosition").innerHTML = "Sub Position X=" + player.getSubX() + " Y=" + player.getSubY();
 }
 
 // Move the player when requested.
@@ -439,7 +435,6 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
             drawPlayer();
             break;
         }
-        
         player.subMove(movementXAmount, movementYAmount, orientation);
 
         // Determine what leg the character should be stepping with.
@@ -465,8 +460,12 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
         await sleep(duration / movementStepAmount);
     }
 
+    // Prevent moving during scene transition and snapping back afterwards.
+    if (!currentlyDoingTransition) {
+        player.move(xIncrease, yIncrease, orientation);
+    }
     player.resetSubPosition();
-    player.move(xIncrease, yIncrease, orientation, usingTeleporter)
+    
 }
 
 function sleep(ms) {
@@ -536,12 +535,12 @@ function tapRotation(key) {
     } else if (player.getSubX() != 0 || player.getSubY() != 0) {
         // Do nothing if player is already moving.
     } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1) {
-        currentOrientation = 0;
+        player.move(0, 0, 0);
     } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1) {
-        currentOrientation = 1;
+        player.move(0, 0, 1);
     } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1) {
-        currentOrientation = 2;
+        player.move(0, 0, 2);
     } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1) {
-        currentOrientation = 3;
+        player.move(0, 0, 3);
     } 
 }
