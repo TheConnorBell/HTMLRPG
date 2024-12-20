@@ -1,9 +1,16 @@
+import { Player } from "./player.js";
+
 var canvas = null
 var context = null;
 
-// The default map file
+// The map file.
 const defaultMapFile = "assets/maps/spawn.json";
 var currentMap = null;
+
+
+// The player instance.
+const defaultPlayerSprite = "characters/blue_knight";
+var player;
 
 // The total size of the map.
 var mapWidth = 0;
@@ -21,13 +28,6 @@ var currentSecond = 0;
 var frameCount = 0;
 var prevFramesPerSecond = 0;
 var lastFrameTime = 0;
-
-//Initial player positions.
-var currentPlayerXPosition = 0;
-var currentPlayerYPosition = 0;
-
-var currentPlayerXDecimalMovement = 0;
-var currentPlayerYDecimalMovement = 0;
 
 // Player movement variables.
 var keyPresses = {};
@@ -87,6 +87,10 @@ window.onload = function() {
         }
     });
 
+    // Craete the player instance.
+    player = new Player(defaultPlayerSprite, 0, 0, 3);
+    loadTexture(defaultPlayerSprite);
+
     readMapFile(defaultMapFile);
 
     // Start the main loop.
@@ -116,11 +120,9 @@ async function readMapFile(src) {
     const mapData = await response.json();
 
     currentMap = mapData.mapName;
-    currentPlayerXPosition = mapData.defaultSpawn[0];
-    currentPlayerYPosition = mapData.defaultSpawn[1];
     mapWidth = mapData.mapSize[0];
     mapHeight = mapData.mapSize[1];
-    currentOrientation = mapData.defaultOrientation;
+    player.move(mapData.defaultSpawn[0], mapData.defaultSpawn[1], mapData.defaultOrientation, true);
     
     // Clear map textures to remove unused textures from memory.
     mapTextures = []
@@ -128,32 +130,32 @@ async function readMapFile(src) {
     // Pre-load all tile textures.
     gameMapCells = mapData.cells;
     for (var i = 0; i < gameMapCells.length; i++) {
-        loadTextures(gameMapCells[i].texturePath);
+        loadTexture(gameMapCells[i].texturePath);
     }
 
     // Pre-load all teleporter textures annd use=textures.
     gameMapTeleporters = mapData.teleporters;
     for (var i = 0; i < gameMapTeleporters.length; i++) {
-        loadTextures(gameMapTeleporters[i].texturePath)
+        loadTexture(gameMapTeleporters[i].texturePath)
         if (gameMapTeleporters[i].teleporterType == "door") {
-            loadTextures(gameMapTeleporters[i].useTexturePath);
+            loadTexture(gameMapTeleporters[i].useTexturePath);
         }
     }
 
     // Pre-load all decoration object textures.
     gameMapDecorations = mapData.decorations;
     for (var i = 0; i < gameMapDecorations.length; i++) {
-        loadTextures(gameMapDecorations[i].texturePath);
+        loadTexture(gameMapDecorations[i].texturePath);
     }
 
     // Pre-load all interactors and NPC textures.
     gameMapInteractors = mapData.interactors;
     for (var i = 0; i < gameMapInteractors.length; i++) {
-        loadTextures(gameMapInteractors[i].texturePath);
+        loadTexture(gameMapInteractors[i].texturePath);
     }
 }
 
-function loadTextures(texturePath) {
+function loadTexture(texturePath) {
     if (!texturePath) {
         return;
     }
@@ -176,8 +178,11 @@ function drawGame() {
     context.imageSmoothingEnabled = false;
 
     // Get the offset the canvas has from the centre of the canvas screen.
-    const xOffset = Math.floor(currentPlayerXPosition) - Math.floor(screenCellWidthAmount  / 2);
-    const yOffset = Math.floor(currentPlayerYPosition) - Math.floor(screenCellHeightAmount / 2);
+    const xOffset = Math.floor(player.getX()) - Math.floor(screenCellWidthAmount / 2);
+    const yOffset = Math.floor(player.getY()) - Math.floor(screenCellHeightAmount / 2);
+
+    const playerX = player.getSubX();
+    const playerY = player.getSubY();
 
     // Draw each cell visible on screen.
     for (var y = -1; y < screenCellHeightAmount + 1; y++) {
@@ -196,15 +201,15 @@ function drawGame() {
             const tex = mapTextures[cell.texturePath];
 
             // Draw the current tile at the correct position with the correct scale.
-            context.drawImage(tex, Math.floor((x + currentPlayerXDecimalMovement) * tileSize), Math.floor((y + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+            context.drawImage(tex, Math.floor((x + playerX) * tileSize), Math.floor((y + playerY) * tileSize), tileSize, tileSize);
         }
     }
 
     var renderCellOffset = 1;
-    var maximumXRender = (currentPlayerXPosition + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
-    var minimumXRender = (currentPlayerXPosition - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
-    var maximumYRender = (currentPlayerYPosition + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
-    var minimumYRender = (currentPlayerYPosition - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
+    var maximumXRender = (player.getX() + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
+    var minimumXRender = (player.getX() - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
+    var maximumYRender = (player.getY() + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
+    var minimumYRender = (player.getY() - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
     // Default teleporter fill colour.
     context.fillStyle = "#15d445";
 
@@ -221,21 +226,21 @@ function drawGame() {
         // Draw teleporters using the correct/no texture.
         if ((currentTeleporter.textureType != "" && !currentlyDoingTransition) || (currentTeleporter.teleporterType == "hole" && currentTeleporter.textureType != "")) {
   
-            context.drawImage(mapTextures[currentTeleporter.texturePath], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+            context.drawImage(mapTextures[currentTeleporter.texturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         
         } else if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTextureType != "" && currentlyDoingTransition) {
-            context.drawImage(mapTextures[currentTeleporter.useTexturePath], Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+            context.drawImage(mapTextures[currentTeleporter.useTexturePath], Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         
         } else {
             // Draw the teleporter with the default colour.
-            context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+            context.fillRect(Math.floor(((currentTeleporter.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentTeleporter.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         }
     }
 
     // Check player movement.
     if (lockPlayerControls) {
         // Do nothing if the player controls are locked.
-    } else if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
+    } else if (player.getSubX() != 0 || player.getSubY() != 0) {
         // Do nothing if player is already moving.
     } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || currentOrientation == 0)) {
         currentOrientation = 0;
@@ -254,10 +259,10 @@ function drawGame() {
     var decorationsInFrontOfPlayer = [];
     
     renderCellOffset = 3;
-    maximumXRender = (currentPlayerXPosition + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
-    minimumXRender = (currentPlayerXPosition - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
-    maximumYRender = (currentPlayerYPosition + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
-    minimumYRender = (currentPlayerYPosition - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
+    maximumXRender = (player.getX() + Math.floor(screenCellWidthAmount / 2) + renderCellOffset);
+    minimumXRender = (player.getX() - Math.floor(screenCellWidthAmount / 2) - renderCellOffset);
+    maximumYRender = (player.getY() + Math.floor(screenCellHeightAmount / 2) + renderCellOffset);
+    minimumYRender = (player.getY() - Math.floor(screenCellHeightAmount / 2) - renderCellOffset);
 
     // Go through each decoration, and determine if they need to be rendered before or after the player is drawn.
     for (var i = 0; i < gameMapDecorations.length; i++) {
@@ -265,7 +270,7 @@ function drawGame() {
         const currentDecoration = gameMapDecorations[i];
 
         // Check if the decoration should be infront of player.
-        if (currentDecoration.zIndex == 1 || ((currentDecoration.y + currentDecoration.height - 1) > currentPlayerYPosition && currentDecoration.zIndex != -1)) {
+        if (currentDecoration.zIndex == 1 || ((currentDecoration.y + currentDecoration.height - 1) > player.getY() && currentDecoration.zIndex != -1)) {
             decorationsInFrontOfPlayer.push(currentDecoration);
             continue;
         }
@@ -275,7 +280,7 @@ function drawGame() {
             continue;
         }
 
-        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
     }
 
     // Draw all interactors/NPCs behind the player.
@@ -285,13 +290,13 @@ function drawGame() {
         const currentInteractor = gameMapInteractors[i];
 
         // Check if the interactor should be infront of or behind the player.
-        if (currentPlayerYPosition > currentInteractor.y) {
+        if (player.getY() > currentInteractor.y) {
             if (mapTextures[currentInteractor.texturePath]) {
                 // Draw Interactor sprite.
-                context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize*2);
+                context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
             } else {
                 context.fillStyle = "#17babf";
-                context.fillRect(Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+                context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
             }
         } else {
             // Move the interactor the the array to draw infront of the player.
@@ -313,7 +318,7 @@ function drawGame() {
             continue;
         }
 
-        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
+        context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
     
     }
 
@@ -324,10 +329,10 @@ function drawGame() {
 
         if (mapTextures[currentInteractor.texturePath]) {
             // Draw Interactor sprite.
-            context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize*2);
+            context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * tileSize), tileSize, tileSize*2);
         } else {
             context.fillStyle = "#17babf";
-            context.fillRect(Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+            context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * tileSize), tileSize, tileSize);
         }
     }
     
@@ -349,12 +354,12 @@ function drawGame() {
     }
 
     // Update Position values.
-    document.getElementById("Position").innerHTML = "Position X=" + currentPlayerXPosition + " Y=" + currentPlayerYPosition;
-    document.getElementById("SubPosition").innerHTML = "Sub Position X=" + currentPlayerXDecimalMovement + " Y=" + currentPlayerYDecimalMovement;
+    document.getElementById("Position").innerHTML = "Position X=" + player.getX() + " Y=" + player.getY();
+    document.getElementById("SubPosition").innerHTML = "Sub Position X=" + player.getSubX() + " Y=" + player.getSubY();
 }
 
 // Move the player when requested.
-async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTeleporter = false) {
+async function movePlayer(xIncrease, yIncrease, orientation, duration = movementTime, usingTeleporter = false) {
 
     // Check if player controls are locked.
     if (lockPlayerControls) {
@@ -362,8 +367,8 @@ async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTe
     }
 
     // Get the new position the player will move to.
-    const newPlayerXPosition = currentPlayerXPosition + xIncrease;
-    const newPlayerYPosition = currentPlayerYPosition + yIncrease;
+    const newPlayerXPosition = player.getX() + xIncrease;
+    const newPlayerYPosition = player.getY() + yIncrease;
 
     // Check if the player will walk into a teleporter.
     var currentTeleporter = gameMapTeleporters.find((teleporter) => teleporter.x == newPlayerXPosition && teleporter.y == newPlayerYPosition);
@@ -416,8 +421,8 @@ async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTe
     }
 
     // Determine amount of movement per step, and in what direction.
-    const movementXAmount = (Math.abs(newPlayerXPosition - currentPlayerXPosition) / movementStepAmount) * -xIncrease;
-    const movementYAmount = (Math.abs(newPlayerYPosition - currentPlayerYPosition) / movementStepAmount) * -yIncrease;
+    const movementXAmount = (Math.abs(newPlayerXPosition - player.getX()) / movementStepAmount) * -xIncrease;
+    const movementYAmount = (Math.abs(newPlayerYPosition - player.getY()) / movementStepAmount) * -yIncrease;
 
     if (usingTeleporter) {
         await sleep(300);
@@ -429,15 +434,13 @@ async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTe
     for (var i = 1; i <= movementStepAmount; i++) {
 
         if (currentMap != map) {
-            currentPlayerXDecimalMovement = 0;
-            currentPlayerYDecimalMovement = 0;
+            player.resetSubPosition();
             currentlyStepping = false;
             drawPlayer();
             break;
         }
         
-        currentPlayerXDecimalMovement += movementXAmount;
-        currentPlayerYDecimalMovement += movementYAmount;
+        player.subMove(movementXAmount, movementYAmount, orientation);
 
         // Determine what leg the character should be stepping with.
         currentStepCount++;
@@ -462,18 +465,8 @@ async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTe
         await sleep(duration / movementStepAmount);
     }
 
-    // Update player position.
-    currentPlayerXDecimalMovement = 0;
-    currentPlayerYDecimalMovement = 0;
-
-    // Prevent aditional moving after map change.
-    if (currentMap == map) {
-        currentPlayerXPosition += xIncrease;
-        currentPlayerYPosition += yIncrease;
-    }
-
-    
-    
+    player.resetSubPosition();
+    player.move(xIncrease, yIncrease, orientation, usingTeleporter)
 }
 
 function sleep(ms) {
@@ -517,11 +510,8 @@ async function doSceneTransition(destinationMapSrc, destinationPosition, destina
 
     await readMapFile(destinationMapSrc);
 
-    currentPlayerXPosition = destinationPosition[0];
-    currentPlayerYPosition = destinationPosition[1];
-    currentPlayerXDecimalMovement = 0;
-    currentPlayerYDecimalMovement = 0;
-    currentOrientation = destinationOrientation;
+    player.move(destinationPosition[0], destinationPosition[1], destinationOrientation, true);
+    player.resetSubPosition();
 
     await sleep(20);
 
@@ -532,20 +522,18 @@ async function doSceneTransition(destinationMapSrc, destinationPosition, destina
     
     // Ensure variables have been set properly.
     transitionOpacity = 0;
-    currentPlayerXPosition = destinationPosition[0];
-    currentPlayerYPosition = destinationPosition[1];
-    currentOrientation = destinationOrientation;
+    player.move(destinationPosition[0], destinationPosition[1], destinationOrientation, true);
+    player.resetSubPosition();
 
     lockPlayerControls = false;
     currentlyDoingTransition = false;
 }
 
 function tapRotation(key) {
-    console.log(key, keyPresses);
     // Check player movement.
     if (lockPlayerControls) {
         // Do nothing if the player controls are locked.
-    } else if (currentPlayerXDecimalMovement != 0 || currentPlayerYDecimalMovement != 0) {
+    } else if (player.getSubX() != 0 || player.getSubY() != 0) {
         // Do nothing if player is already moving.
     } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1) {
         currentOrientation = 0;
