@@ -66,6 +66,6 @@
   ],
   "decorations":[],
   "interactors":[
-    {"x":3,"y":2,"type":"NPC","texturePath":"","orientation":3}
+    {"x":3,"y":2,"type":"NPC","texturePath":"characters/green_knight","orientation":3}
   ]
 }

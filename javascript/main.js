@@ -281,9 +281,23 @@ function drawGame() {
     // Draw all interactors/NPCs behind the player.
     var interactorsInFrontOfPlayer = [];
 
-    //for (var i = 0; i < gameMapInteractors.length; i++) {
+    for (var i = 0; i < gameMapInteractors.length; i++) {
+        const currentInteractor = gameMapInteractors[i];
 
-    //}
+        // Check if the interactor should be infront of or behind the player.
+        if (currentPlayerYPosition > currentInteractor.y) {
+            if (mapTextures[currentInteractor.texturePath]) {
+                // Draw Interactor sprite.
+                context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize*2);
+            } else {
+                context.fillStyle = "#17babf";
+                context.fillRect(Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+            }
+        } else {
+            // Move the interactor the the array to draw infront of the player.
+            interactorsInFrontOfPlayer.push(currentInteractor);
+        }
+    }
 
     
     // Draw player.
@@ -301,6 +315,20 @@ function drawGame() {
 
         context.drawImage(mapTextures[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentDecoration.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize*currentDecoration.width, tileSize*currentDecoration.height);
     
+    }
+
+    // Draw any remaining interactors.
+    for (var i = 0; i < interactorsInFrontOfPlayer.length; i++) {
+
+        const currentInteractor = interactorsInFrontOfPlayer[i];
+
+        if (mapTextures[currentInteractor.texturePath]) {
+            // Draw Interactor sprite.
+            context.drawImage(mapTextures[currentInteractor.texturePath], 0, tileSize * currentInteractor.orientation, tileSize/2, tileSize, Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize*2);
+        } else {
+            context.fillStyle = "#17babf";
+            context.fillRect(Math.floor(((currentInteractor.x - xOffset) + currentPlayerXDecimalMovement) * tileSize), Math.floor(((currentInteractor.y - yOffset) + currentPlayerYDecimalMovement) * tileSize), tileSize, tileSize);
+        }
     }
     
     // Control Screen Opacity.
@@ -361,6 +389,15 @@ async function movePlayer(xIncrease, yIncrease, duration = movementTime, usingTe
         // Check the player will not be moving outside the map.
         if (newPlayerXPosition < 0 || newPlayerXPosition >= mapWidth || newPlayerYPosition < 0 || newPlayerYPosition >= mapHeight) {
             return;
+        }
+
+        // Check the player will not be moving into an interactor.
+        for (var i = 0; i < gameMapInteractors.length; i++) {
+
+            const interactor = gameMapInteractors[i];
+            if (interactor.x == newPlayerXPosition && interactor.y == newPlayerYPosition) {
+                return;
+            }
         }
 
         // Get the position of the new cell to be walked onto.
