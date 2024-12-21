@@ -62,7 +62,7 @@
     {"x":6,"y":6,"texturePath":"terrain/obstacle/wall_1","walkable":[0,0,0,0]}
   ],
   "teleporters":[
-    {"x":3,"y":6,"walkable":[0,0,1,0],"destination":"spawn","destinationPos":[2,4],"orientation":3,"visible":1,"enabled":1,"texturePath":"terrain/building/bottom_light_glow_exit","teleporterType":"hole"}
+    {"x":3,"y":6,"walkable":[0,0,1,0],"destination":"spawn","destinationPos":[2,4],"orientation":3,"visible":1,"enabled":1,"texturePath":"terrain/building/bottom_light_glow_exit","teleporterType":"tunnel"}
   ],
   "decorations":[],
   "interactors":[

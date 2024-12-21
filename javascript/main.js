@@ -1,11 +1,15 @@
 import { Player } from "./player.js";
 import { Renderer } from "./renderer.js";
+import { InputController} from "./inputController.js";
 
 var canvas = null
 var context = null;
 
 // The renderer instance.
 var renderer;
+
+// The input controller instance.
+var inputController;
 
 // The map file.
 const defaultMapFile = "assets/maps/spawn.json";
@@ -32,15 +36,11 @@ var frameCount = 0;
 var prevFramesPerSecond = 0;
 
 // Player movement variables.
-var keyPresses = {};
 
-var lockPlayerControls = false;
 var currentlyDoingTransition = false;
 
 const movementStepAmount = 8;
 const movementTime = 250; // ms
-
-const tapRotationDuration = 120; // ms
 
 // Arrays of map information.
 var gameMapCells = [];
@@ -57,32 +57,15 @@ window.onload = function() {
     canvas = document.getElementById("gameCanvas");
     context = canvas.getContext('2d');
 
-    document.addEventListener('keydown', function(event) {
-        // Check the key is not being held down.
-        if (!keyPresses[event.key] || keyPresses[event.key] == -1) {
-            keyPresses[event.key] = Date.now();
-        }
-    });
-
-    document.addEventListener('keyup', function(event) {
-
-        // Check that the key has not already been released.
-        if (keyPresses[event.key] != -1) {
-
-            // Check if the key was quickly tapped.
-            if (tapRotationDuration > Date.now() - keyPresses[event.key]) {
-                tapRotation(event.key);
-            }
-            keyPresses[event.key] = -1;
-        }
-    });
-
     // Create the renderer instance.
     renderer = new Renderer(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount);
 
-    // Craete the player instance.
+    // Create the player instance.
     player = new Player(defaultPlayerSprite, 0, 0, 3);
     renderer.loadIntoTextureMemory(defaultPlayerSprite);
+
+    // Create the input controller instance.
+    inputController = new InputController();
 
     readMapFile(defaultMapFile);
 
@@ -152,19 +135,21 @@ function drawGame() {
     }
 
     // Check player movement.
-    if (lockPlayerControls) {
-        // Do nothing if the player controls are locked.
-    } else if (player.getSubX() != 0 || player.getSubY() != 0) {
-        // Do nothing if player is already moving.
-    } else if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || player.getOrientation() == 0)) {
-        movePlayer(-1, 0, 0);
-    } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || player.getOrientation() == 1)) {
-        movePlayer(1, 0, 1);
-    } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || player.getOrientation() == 2)) {
-        movePlayer(0, -1, 2);
-    } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || player.getOrientation() == 3)) {
-        movePlayer(0, 1, 3);
-    } 
+    if (inputController.areInputsLocked() && player.getSubX == 0 && player.getSubY == 0) {
+
+        // Check player movements
+        movementInputs = inputController.getActiveMovementInputs();
+
+        if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || player.getOrientation() == 0)) {
+            movePlayer(-1, 0, 0);
+        } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || player.getOrientation() == 1)) {
+            movePlayer(1, 0, 1);
+        } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || player.getOrientation() == 2)) {
+            movePlayer(0, -1, 2);
+        } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || player.getOrientation() == 3)) {
+            movePlayer(0, 1, 3);
+        }
+    }
 
     renderer.drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, player, mapWidth, mapHeight, currentlyDoingTransition);
 
