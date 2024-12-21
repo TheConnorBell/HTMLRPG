@@ -92,6 +92,11 @@ export class Renderer {
 
             const currentTeleporter = gameMapTeleporters[i];
 
+            // Check the teleporter is visible at all.
+            if (currentTeleporter.visible == 0) {
+                continue;
+            }
+
             // Check the teleporter is visible on the screen.
             if (!this.isObjectWithinCameraView(currentTeleporter.x, currentTeleporter.y, xOffset, yOffset, positiveXOffset, positiveYOffset, teleporterRenderOffset)) {
                 continue;
@@ -113,69 +118,89 @@ export class Renderer {
         }
 
         var decorationsInFrontOfPlayer = [];
-        
-        //renderCellOffset = 3;
-        var maximumXRender = 1;
-        var minimumXRender = 10;
-        var maximumYRender = 1;
-        var minimumYRender = 10;
 
         // Go through each decoration, and determine if they need to be rendered before or after the player is drawn.
         for (var i = 0; i < gameMapDecorations.length; i++) {
 
             const currentDecoration = gameMapDecorations[i];
 
+            // Check if the decoration is visible on the canvas.
+            if (!this.isObjectWithinCameraView(currentDecoration.x, currentDecoration.y, xOffset, yOffset, positiveXOffset, positiveYOffset, decorationRenderOffset)) {
+                continue;
+            }
+
             // Check if the decoration should be infront of player.
-            if (currentDecoration.zIndex == 1 || ((currentDecoration.y + currentDecoration.height - 1) > player.getY() && currentDecoration.zIndex != -1)) {
+            if (currentDecoration.zIndex == 1 || ((currentDecoration.y + currentDecoration.height) > playerY && currentDecoration.zIndex != -1)) {
                 decorationsInFrontOfPlayer.push(currentDecoration);
                 continue;
             }
 
-            // Check the decoration is visible on the screen.
-            if (currentDecoration.visible == 0 || currentDecoration.x > maximumXRender || currentDecoration.x < minimumXRender || currentDecoration.y > maximumYRender || currentDecoration.y < minimumYRender) {
-                continue;
-            }
-
-            this.context.drawImage(this.textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize*currentDecoration.width, this.tileSize*currentDecoration.height);
+            // Draw the decoration.
+            this.drawObject(
+                this.textureMap[currentDecoration.texturePath],
+                (currentDecoration.x - xOffset + playerSubX) * this.tileSize,
+                (currentDecoration.y - yOffset + playerSubY) * this.tileSize,
+                currentDecoration.width,
+                currentDecoration.height
+            );
         }
 
         // Draw all interactors/NPCs behind the player.
         var interactorsInFrontOfPlayer = [];
 
         for (var i = 0; i < gameMapInteractors.length; i++) {
+
             const currentInteractor = gameMapInteractors[i];
 
-            // Check if the interactor should be infront of or behind the player.
-            if (player.getY() > currentInteractor.y) {
-                if (this.textureMap[currentInteractor.texturePath]) {
-                    // Draw Interactor sprite.
-                    this.context.drawImage(this.textureMap[currentInteractor.texturePath], 0, this.tileSize * currentInteractor.orientation, this.tileSize/2, this.tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize*2);
-                } else {
-                    this.context.fillStyle = "#17babf";
-                    this.context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize);
-                }
-            } else {
-                // Move the interactor the the array to draw infront of the player.
-                interactorsInFrontOfPlayer.push(currentInteractor);
+            // Check if the interactor should be rendered at all.
+            if (currentInteractor.visible == 0) {
+                continue;
             }
+
+            // Check if the interactor is visible on the canvas.
+            if (!this.isObjectWithinCameraView(currentInteractor.x, currentInteractor.y, xOffset, yOffset, positiveXOffset, positiveYOffset, interactorRenderOffset)) {
+                continue;
+            }
+
+            // Check if the interactor should be drawn in-front of or behind the player.
+            if (currentInteractor.y >= playerY) {
+                interactorsInFrontOfPlayer.push(currentInteractor);
+                continue;
+            }
+
+            // TEMP CODE while NPC's cannot move.
+            this.drawInteractor(
+                currentInteractor.type,
+                this.textureMap[currentInteractor.texturePath],
+                (currentInteractor.x - xOffset + playerSubX) * this.tileSize,
+                (currentInteractor.y - yOffset + playerSubY) * this.tileSize,
+                currentInteractor.width,
+                currentInteractor.height,
+                0,
+                this.tileSize * (currentInteractor.orientation || 0),
+                currentInteractor.width,
+                currentInteractor.height
+            );
         }
 
         
         // Draw player.
         this.drawPlayer(player);
 
-        // Draw any remaining decorations.
+
+        // Draw any remaining decorations which should be visible on the screen.
         for (var i = 0; i < decorationsInFrontOfPlayer.length; i++) {
 
             const currentDecoration = decorationsInFrontOfPlayer[i];
 
-            // Check the decoration is visible on the screen.
-            if (currentDecoration.visible == 0 || currentDecoration.x > maximumXRender || currentDecoration.x < minimumXRender || currentDecoration.y > maximumYRender || currentDecoration.y < minimumYRender) {
-                continue;
-            }
-
-            this.context.drawImage(this.textureMap[currentDecoration.texturePath], Math.floor(((currentDecoration.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentDecoration.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize*currentDecoration.width, this.tileSize*currentDecoration.height);
-        
+            // Draw the decoration.
+            this.drawObject(
+                this.textureMap[currentDecoration.texturePath],
+                (currentDecoration.x - xOffset + player.getSubX()) * this.tileSize,
+                (currentDecoration.y - 1 - yOffset + player.getSubY()) * this.tileSize,
+                currentDecoration.width,
+                currentDecoration.height
+            );
         }
 
         // Draw any remaining interactors.
@@ -183,15 +208,20 @@ export class Renderer {
 
             const currentInteractor = interactorsInFrontOfPlayer[i];
 
-            if (this.textureMap[currentInteractor.texturePath]) {
-                // Draw Interactor sprite.
-                this.context.drawImage(this.textureMap[currentInteractor.texturePath], 0, this.tileSize * currentInteractor.orientation, this.tileSize/2, this.tileSize, Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) - 1 + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize*2);
-            } else {
-                this.context.fillStyle = "#17babf";
-                this.context.fillRect(Math.floor(((currentInteractor.x - xOffset) + player.getSubX()) * this.tileSize), Math.floor(((currentInteractor.y - yOffset) + player.getSubY()) * this.tileSize), this.tileSize, this.tileSize);
-            }
+            // TEMP CODE while NPC's cannot move.
+            this.drawInteractor(
+                currentInteractor.type,
+                this.textureMap[currentInteractor.texturePath],
+                (currentInteractor.x - xOffset + playerSubX) * this.tileSize,
+                (currentInteractor.y - yOffset + playerSubY) * this.tileSize,
+                currentInteractor.width,
+                currentInteractor.height,
+                0,
+                this.tileSize * (currentInteractor.orientation || 0),
+                currentInteractor.width,
+                currentInteractor.height
+            );
         }
-
     }
 
     drawPlayer(player) {
@@ -202,7 +232,18 @@ export class Renderer {
         this.context.drawImage(texturePath, xPos, yPos, this.tileSize * width, this.tileSize * height);
     }
 
-    drawCharacter() {
+    drawInteractor(interactorType, texturePath, xPos, yPos, width, height, sx = 0, sy = 0, swidth = width, sheight = height) {
 
+        // Pre=process the width and height variables
+        width = width * this.tileSize;
+        height = height * this.tileSize;
+        swidth = swidth * this.tileSize / 2;
+        sheight = sheight * this.tileSize / 2;
+
+        if (interactorType != "NPC") {
+            sx = 0;
+            sy = 0;
+        }
+        this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos - (height / 2), width, height);
     }
 }

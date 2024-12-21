@@ -200,6 +200,8 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
         return;
     }
 
+    player.move(0,0, orientation)
+
     // Get the new position the player will move to.
     const newPlayerXPosition = player.getX() + xIncrease;
     const newPlayerYPosition = player.getY() + yIncrease;
