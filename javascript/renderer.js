@@ -1,3 +1,6 @@
+// Set an offset for rendering tiles to prevent tiles not appearing during walking.
+const tileRenderOffset = 1;
+
 export class Renderer {
 
     defaultTextureFolderPath = "assets/textures/"
@@ -37,27 +40,30 @@ export class Renderer {
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Get the offset the canvas has from the centre of the canvas screen.
-        const xOffset = Math.floor(player.getX()) - Math.floor(this.screenCellWidthAmount / 2);
-        const yOffset = Math.floor(player.getY()) - Math.floor(this.screenCellHeightAmount / 2);
+        // Get the coordinates the top left tile on the visible canvas area.
+        const xOffset = player.getX() - Math.floor(this.screenCellWidthAmount / 2);
+        const yOffset = player.getY() - Math.floor(this.screenCellHeightAmount / 2);
+        
+        // Get the coordinates of the bottom right tile on the visible canvas area.
+        const positiveXOffset = player.getX() + Math.floor(this.screenCellWidthAmount / 2);
+        const positiveYOffset = player.getY() + Math.floor(this.screenCellHeightAmount / 2);
 
-        const playerX = player.getSubX();
-        const playerY = player.getSubY();
-
-        const tileOffset = 1;
+        const playerSubX = player.getSubX();
+        const playerSubY = player.getSubY();
 
         for (var i = 0; i < gameMapCells.length; i++) {
+
             const cell = gameMapCells[i];
 
-            const mapX = cell.x - xOffset;
-            const mapY = cell.y - yOffset;
-
-            // Determine if the tile should be rendered by checking that it is within view of the camera.
-            if (mapX < -tileOffset || mapX >= mapWidth + tileOffset || mapY < -tileOffset || mapY >= mapHeight + tileOffset) {
-                continue;
+            // Determine if the tile falls within the cameras bounds.
+            if (cell.x < xOffset - tileRenderOffset || cell.x > positiveXOffset + tileRenderOffset || cell.y < yOffset - tileRenderOffset || cell.y > positiveYOffset + tileRenderOffset) {
+                continue
             }
 
-            this.drawTile(this.textureMap[cell.texturePath], Math.floor((mapX + playerX) * this.tileSize), Math.floor((mapY + playerY) * this.tileSize));
+            const cellScreenXPosition = cell.x - xOffset;
+            const cellScreenYPosition = cell.y - yOffset;
+
+            this.drawTile(this.textureMap[cell.texturePath], Math.floor((cellScreenXPosition + playerSubX) * this.tileSize), Math.floor((cellScreenYPosition + playerSubY) * this.tileSize));
         }
 
         var renderCellOffset = 1;

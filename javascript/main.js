@@ -270,8 +270,6 @@ async function movePlayer(xIncrease, yIncrease, orientation, duration = movement
 
         if (currentMap != map) {
             player.resetSubPosition();
-            currentlyStepping = false;
-            drawPlayer();
             break;
         }
         player.subMove(movementXAmount, movementYAmount, orientation);
