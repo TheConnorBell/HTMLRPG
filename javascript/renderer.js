@@ -44,13 +44,13 @@ export class Renderer {
         const playerX = player.getSubX();
         const playerY = player.getSubY();
 
+        const tileOffset = 1;
+
         for (var i = 0; i < gameMapCells.length; i++) {
             const cell = gameMapCells[i];
 
             const mapX = cell.x - xOffset;
             const mapY = cell.y - yOffset;
-
-            const tileOffset = 1;
 
             // Determine if the tile should be rendered by checking that it is within view of the camera.
             if (mapX < -tileOffset || mapX >= mapWidth + tileOffset || mapY < -tileOffset || mapY >= mapHeight + tileOffset) {
@@ -58,29 +58,6 @@ export class Renderer {
             }
 
             this.drawTile(this.textureMap[cell.texturePath], Math.floor((mapX + playerX) * this.tileSize), Math.floor((mapY + playerY) * this.tileSize));
-        }
-
-        // Draw each cell visible on screen.
-        for (var y = -1; y < this.screenCellHeightAmount + 1; y++) {
-            for (var x = -1; x < this.screenCellWidthAmount + 1; x++) {
-                continue;
-
-                // Get the tile position based on screen offset.
-                const mapX = xOffset + x;
-                const mapY = yOffset + y;
-
-                // Determine if the tile should be rendered by checking that it is within view of the camera.
-                if (mapX < 0 || mapX >= mapWidth || mapY < 0 || mapY >= mapHeight) {
-                    continue;
-                }
-
-                const cell = gameMapCells[((mapY*mapWidth)+mapX)];
-                const tex = this.textureMap[cell.texturePath];
-
-                // Draw the current tile at the correct position with the correct scale.
-                //this.context.drawImage(tex, Math.floor((x + playerX) * this.tileSize), Math.floor((y + playerY) * this.tileSize), this.tileSize, this.tileSize);
-                this.drawTile(this.textureMap[cell.texturePath], Math.floor((x + playerX) * this.tileSize), Math.floor((y + playerY) * this.tileSize));
-            }
         }
 
         var renderCellOffset = 1;
