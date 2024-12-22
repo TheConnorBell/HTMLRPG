@@ -52,7 +52,7 @@ export class Renderer {
         return true;
     }
 
-    drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, currentlyDoingTransition) {
+    drawFrame(currentlyDoingTransition) {
 
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -70,6 +70,12 @@ export class Renderer {
         // Get the coordinates of the bottom right tile on the visible canvas area.
         const positiveXOffset = playerX + this.canvasWidthToCenter;
         const positiveYOffset = playerY + this.canvasHeightToCenter;
+
+        // Get the different map object arrays.
+        var gameMapCells = this.mapManager.getMapCells();
+        var gameMapTeleporters = this.mapManager.getMapTeleporters();
+        var gameMapDecorations = this.mapManager.getMapDecorations();
+        var gameMapInteractors = this.mapManager.getMapInteractors();
 
         for (var i = 0; i < gameMapCells.length; i++) {
 

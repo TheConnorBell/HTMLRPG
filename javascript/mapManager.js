@@ -6,10 +6,10 @@ export class MapManager {
     mapWidth;
     mapHeight;
 
-    gameMapCells;
-    gameMapTeleporters;
-    gameMapDecorations;
-    gameMapInteractors;
+    gameMapCells = [];
+    gameMapTeleporters = [];
+    gameMapDecorations = [];
+    gameMapInteractors = [];
 
     constructor(renderer, player) {
         this.renderer = renderer;
@@ -17,7 +17,6 @@ export class MapManager {
     }
 
     async loadMapFile(mapSrcPath) {
-
         // Get the new map file.
         const response = await fetch(mapSrcPath);
         const mapData = await response.json();
@@ -55,19 +54,35 @@ export class MapManager {
         }
     }
 
-    getMapCells() {
+    getMapCells(x = null, y = null) {
+        // Check if all cells should be returned, or just a single cell.
+        if (x && y) {
+            return this.gameMapCells.find((cell) => cell.x == x && cell.y == y); 
+        }
         return this.gameMapCells;
     }
 
-    getMapTeleporters() {
+    getMapTeleporters(x = null, y = null) {
+        // Check if all teleporters should be returned, or just a single teleporter.
+        if (x && y) {
+            return this.gameMapTeleporters.find((teleporter) => teleporter.x == x && teleporter.y == y); 
+        }
         return this.gameMapTeleporters;
     }
 
-    getMapDecorations() {
+    getMapDecorations(x = null, y = null) {
+        // Check if all decorations should be returned, or just a single decoration.
+        if (x && y) {
+            return this.gameMapDecorations.find((decoration) => decoration.x == x && decoration.y == y); 
+        }
         return this.gameMapDecorations;
     }
 
-    getMapInteractors() {
+    getMapInteractors(x = null, y = null) {
+        // Check if all interactors should be returned, or just a single interactor.
+        if (x && y) {
+            return this.gameMapInteractors.find((interactor) => interactor.x == x && interactor.y == y); 
+        }
         return this.gameMapInteractors;
     }
 }

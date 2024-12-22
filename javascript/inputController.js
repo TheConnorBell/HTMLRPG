@@ -84,16 +84,16 @@ export class InputController {
         // Check if the each movement keybind is being used.
         if (this.movementInputs[this.keybinds["left"]] && this.movementInputs[this.keybinds["left"]] != -1) {
             // Return the movement values to the main file so they can be passed along to the player for movement.
-            return [-1, 0, 0, this.movementInputs[this.keybinds["left"]]];
+            this.player.doMovementProcess(-1, 0, 0, this.movementInputs[this.keybinds["left"]])
 
         } else if (this.movementInputs[this.keybinds["right"]] && this.movementInputs[this.keybinds["right"]] != -1) {
-            return [1, 0, 1, this.movementInputs[this.keybinds["right"]]];
+            this.player.doMovementProcess(1, 0, 1, this.movementInputs[this.keybinds["right"]])
 
         } else if (this.movementInputs[this.keybinds["up"]] && this.movementInputs[this.keybinds["up"]] != -1) {
-            return [0, -1, 2, this.movementInputs[this.keybinds["up"]]];
+            this.player.doMovementProcess(0, -1, 2, this.movementInputs[this.keybinds["up"]])
             
         } else if (this.movementInputs[this.keybinds["down"]] && this.movementInputs[this.keybinds["down"]] != -1) {
-            return [0, 1, 3, this.movementInputs[this.keybinds["down"]]];
+            this.player.doMovementProcess(0, 1, 3, this.movementInputs[this.keybinds["down"]])
         }
 
 

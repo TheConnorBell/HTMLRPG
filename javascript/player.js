@@ -17,6 +17,7 @@ export class Player {
     amountOfStepsBetweenFrameSwaps = 0;
 
     inputController = null;
+    mapManager = null;
     usingTeleporter = false;
 
     constructor(texturePath, xPos, yPos, orientation) {
@@ -28,6 +29,10 @@ export class Player {
 
     addInputController(inputController) {
         this.inputController = inputController;
+    }
+
+    addMapManager(mapManager) {
+        this.mapManager = mapManager;
     }
 
     setTexturePath(newPath) {
@@ -122,7 +127,7 @@ export class Player {
         }     
     }
 
-    async doMovementProcess(xIncrease, yIncrease, orientation, keyStartPushTime, lockControls, cellAtDestination = null, teleporterAtDestination = null, interactorAtDestination = null) {
+    async doMovementProcess(xIncrease, yIncrease, orientation, keyStartPushTime) {
 
         // Return if the player is already moving.
         if (this.currentlyMoving) {
@@ -137,6 +142,18 @@ export class Player {
             this.currentlyMoving = false;
             return;
         }
+
+        // Return if no movement is being done.
+        if (xIncrease == 0 && yIncrease == 0) {
+            return;
+        }
+
+        var destinationXValue = this.x + xIncrease;
+        var destinationYValue = this.y + yIncrease;
+
+        var cellAtDestination = this.mapManager.getMapCells(destinationXValue, destinationYValue);
+        var teleporterAtDestination = this.mapManager.getMapTeleporters(destinationXValue, destinationYValue);
+        var interactorAtDestination = this.mapManager.getMapInteractors(destinationXValue, destinationYValue);
 
         // Return if there is no cell for the player to walk on to or the cell prevents walking in this direction.
         if (cellAtDestination == null || cellAtDestination.walkable[orientation] == 0) {
@@ -153,21 +170,52 @@ export class Player {
             return;
         }
 
+        var movementDuration = movementTime;
+
         // Do different movement steps depending on if there is a teleporter or not.
         if (teleporterAtDestination && teleporterAtDestination.enabled) {
             // If the player is walking into a teleporter
             this.usingTeleporter = true;
+
+            // Lock the users controls.
             if (this.inputController) {
                 this.inputController.lockInputs(true);
             }
             
+            movementDuration *= 2;
 
         }
 
         this.currentlyMoving = true;
 
+        // Determine amount of movement per step, and in what direction.
+        const movementXAmount = (1 / movementStepAmount) * -xIncrease;
+        const movementYAmount = (1 / movementStepAmount) * -yIncrease;
+
+        // Add a delay before walking into a teleporter.
+        if (this.usingTeleporter) {
+            this.move(0, 0, orientation);
+            await sleep(300);
+        }
+
+        // Do each movement step.
+        for (var i = 1; i <= movementStepAmount; i++) {
+
+            //if (currentMap != map) {
+            //    this.player.resetSubPosition();
+            //    break;
+            //}
+            this.subMove(movementXAmount, movementYAmount, orientation);
+
+            await this.sleep(movementDuration / movementStepAmount);
+        }
+
+        // Prevent moving during scene transition and snapping back afterwards.
+        //if (!currentlyDoingTransition) {
+        //    player.move(xIncrease, yIncrease, orientation);
+        //}
         this.move(xIncrease, yIncrease, orientation);
-        await this.sleep(200);
+        this.resetSubPosition();
 
         this.currentlyMoving = false;
 

@@ -74,6 +74,7 @@ window.onload = function() {
     // Create the map manager instance.
     mapManager = new MapManager(renderer, player);
     renderer.addMapManager(mapManager);
+    player.addMapManager(mapManager);
 
     // Create the input controller instance.
     inputController = new InputController(player);
@@ -91,15 +92,7 @@ function mainGameLoop() {
     // Equivalent of a while(true) loop to run infinitely.
     function loop() {
 
-        const movementArray = inputController.checkMovement();
-        if (movementArray) {
-            const playerX = player.getX();
-            const playerY = player.getY();
-            const tileAtPosition = getTileAtPosition(movementArray[0] + playerX, movementArray[1] + playerY);
-            const teleporterAtPosition = getTeleporterAtPosition(movementArray[0] + playerX, movementArray[1] + playerY);
-            const interactorAtPosition = getInteractorAtPosition(movementArray[0] + playerX, movementArray[1] + playerY);
-            player.doMovementProcess(movementArray[0], movementArray[1], movementArray[2], movementArray[3], lockControls, tileAtPosition, teleporterAtPosition, interactorAtPosition);
-        }
+        inputController.checkMovement();
 
         // Draw the games tiles.
         drawGame();
@@ -169,7 +162,7 @@ function drawGame() {
         return;
     }
 
-    renderer.drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, player, mapWidth, mapHeight, currentlyDoingTransition);
+    renderer.drawFrame(currentlyDoingTransition);
 
     // Control Screen Opacity.
     if (transitionOpacity != 0) {
