@@ -16,6 +16,7 @@ export class Player {
     currentStepCount = 0;
     amountOfStepsBetweenFrameSwaps = 0;
 
+    renderer = null;
     inputController = null;
     mapManager = null;
     usingTeleporter = false;
@@ -25,6 +26,10 @@ export class Player {
         this.x = xPos;
         this.y = yPos;
         this.orientation = orientation; // Left=0, Right=1, Up=2, Down=3.
+    }
+
+    addRenderer(renderer) {
+        this.renderer = renderer;
     }
 
     addInputController(inputController) {
@@ -184,6 +189,8 @@ export class Player {
             
             movementDuration *= 2;
 
+            this.renderer.startSceneTransition(teleporterAtDestination);
+
         }
 
         this.currentlyMoving = true;
@@ -195,30 +202,39 @@ export class Player {
         // Add a delay before walking into a teleporter.
         if (this.usingTeleporter) {
             this.move(0, 0, orientation);
-            await sleep(300);
+            await this.sleep(300);
         }
+
+        const map = this.mapManager.getCurrentMap();
 
         // Do each movement step.
         for (var i = 1; i <= movementStepAmount; i++) {
 
-            //if (currentMap != map) {
-            //    this.player.resetSubPosition();
-            //    break;
-            //}
+            // stop walking early if the player changes map.
+            if (map != this.mapManager.getCurrentMap()) {
+                this.resetSubPosition();
+                break;
+            }
+
             this.subMove(movementXAmount, movementYAmount, orientation);
 
             await this.sleep(movementDuration / movementStepAmount);
         }
 
         // Prevent moving during scene transition and snapping back afterwards.
-        //if (!currentlyDoingTransition) {
-        //    player.move(xIncrease, yIncrease, orientation);
-        //}
-        this.move(xIncrease, yIncrease, orientation);
+        if (!this.usingTeleporter) {
+            this.move(xIncrease, yIncrease, orientation);
+        }
+
         this.resetSubPosition();
 
         this.currentlyMoving = false;
 
+    }
+
+    unlockControlsAfterTransition() {
+        this.usingTeleporter = false;
+        this.inputController.lockInputs(false);
     }
 
     sleep(ms) {

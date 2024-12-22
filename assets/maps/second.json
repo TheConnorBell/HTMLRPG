@@ -56,13 +56,13 @@
     {"x":0,"y":6,"texturePath":"terrain/obstacle/wall_1","walkable":[0,0,0,0]},
     {"x":1,"y":6,"texturePath":"terrain/obstacle/wall_1","walkable":[0,0,0,0]},
     {"x":2,"y":6,"texturePath":"terrain/obstacle/wall_1","walkable":[0,0,0,0]},
-    {"x":3,"y":6,"texturePath":"terrain/floor/dirt_1","walkable":[0,0,1,0]},
+    {"x":3,"y":6,"texturePath":"terrain/floor/dirt_1","walkable":[0,0,0,1]},
     {"x":4,"y":6,"texturePath":"terrain/obstacle/wall_1","walkable":[0,0,0,0]},
     {"x":5,"y":6,"texturePath":"terrain/obstacle/wall_1","walkable":[0,0,0,0]},
     {"x":6,"y":6,"texturePath":"terrain/obstacle/wall_1","walkable":[0,0,0,0]}
   ],
   "teleporters":[
-    {"x":3,"y":6,"walkable":[0,0,1,0],"destination":"spawn","destinationPos":[2,4],"orientation":3,"visible":1,"enabled":1,"texturePath":"terrain/building/bottom_light_glow_exit","teleporterType":"tunnel"}
+    {"x":3,"y":6,"walkable":[0,0,0,1],"destination":"spawn","destinationPos":[2,4],"orientation":3,"visible":1,"enabled":1,"texturePath":"terrain/building/bottom_light_glow_exit","teleporterType":"tunnel"}
   ],
   "decorations":[],
   "interactors":[

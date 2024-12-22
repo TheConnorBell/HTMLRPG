@@ -43,11 +43,6 @@ export class InputController {
     
             // Check that the key has not already been released.
             if (this.movementInputs[event.key] && this.movementInputs[event.key] != -1) {
-    
-                // Check if the key was quickly tapped.
-                //if (tapRotationDuration > Date.now() - this.movementInputs[event.key]) {
-                    //tapRotation(event.key);
-                //}
                 this.movementInputs[event.key] = -1;
 
             // Check if the input has been released yet.
@@ -95,8 +90,5 @@ export class InputController {
         } else if (this.movementInputs[this.keybinds["down"]] && this.movementInputs[this.keybinds["down"]] != -1) {
             this.player.doMovementProcess(0, 1, 3, this.movementInputs[this.keybinds["down"]])
         }
-
-
-        // Do a check for if startTime + 120Ms before doing any movement if facing same direction in the player move function, here just determines if that fuycntion is called for what key.
     }
 }

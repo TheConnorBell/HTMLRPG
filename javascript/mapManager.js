@@ -18,13 +18,14 @@ export class MapManager {
 
     async loadMapFile(mapSrcPath) {
         // Get the new map file.
-        const response = await fetch(mapSrcPath);
+        const response = await fetch(mapSourcePathRoot + mapSrcPath + ".json");
         const mapData = await response.json();
 
         this.currentMap = mapData.mapName;
         this.mapWidth = mapData.mapSize[0];
         this.mapHeight = mapData.mapSize[1];
         this.player.move(mapData.defaultSpawn[0], mapData.defaultSpawn[1], mapData.defaultOrientation, true);
+        this.player.resetSubPosition();
 
         // Pre-load all tile textures.
         this.gameMapCells = mapData.cells;
@@ -84,5 +85,9 @@ export class MapManager {
             return this.gameMapInteractors.find((interactor) => interactor.x == x && interactor.y == y); 
         }
         return this.gameMapInteractors;
+    }
+
+    getCurrentMap() {
+        return this.currentMap;
     }
 }

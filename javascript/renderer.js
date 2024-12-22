@@ -11,10 +11,15 @@ export class Renderer {
 
     mapManager;
 
+    transitionOpacity = 0;
+    currentlyDoingTransition = false;
+
     constructor(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player) {
         this.canvas = canvas;
         this.context = context;
         this.tileSize = tileSize;
+        this.screenWidth = screenCellWidthAmount;
+        this.screenHeight = screenCellHeightAmount;
         this.canvasWidthToCenter = Math.floor(screenCellWidthAmount / 2);
         this.canvasHeightToCenter = Math.floor(screenCellHeightAmount / 2);
         this.player = player;
@@ -52,7 +57,7 @@ export class Renderer {
         return true;
     }
 
-    drawFrame(currentlyDoingTransition) {
+    drawFrame() {
 
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -118,7 +123,7 @@ export class Renderer {
             var teleporterTexturePath = this.textureMap[currentTeleporter.texturePath];
 
             // Change the teleporter texture if the player is currently using the teleporter.
-            if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTexturePath != "" && currentlyDoingTransition == true) {
+            if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTexturePath != "" && this.currentlyDoingTransition == true) {
                 teleporterTexturePath = this.textureMap[currentTeleporter.useTexturePath];
             }
 
@@ -235,6 +240,11 @@ export class Renderer {
                 currentInteractor.height
             );
         }
+
+        // Draw the screen opacity cover for scene transitions.
+        this.context.fillStyle = "rgba(0,0,0," + this.transitionOpacity + ")";
+        this.context.fillRect(0, 0, this.screenWidth * this.tileSize, this.screenHeight * this.tileSize);
+
     }
 
     drawPlayer() {
@@ -268,5 +278,37 @@ export class Renderer {
             sy = 0;
         }
         this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos - (height / 2), width, height);
+    }
+
+    async startSceneTransition(teleporterObj) {
+
+        this.currentlyDoingTransition = true;
+
+        // Add delay before screen darkening.
+        await this.player.sleep(200);
+
+        // Slowly make the screen black.
+        for (var i = 0; i < 20; i++) {
+            this.transitionOpacity += 0.05;
+            await this.player.sleep(20);
+        }
+
+        await this.mapManager.loadMapFile(teleporterObj.destination);
+        this.player.move(teleporterObj.destinationPos[0], teleporterObj.destinationPos[1], teleporterObj.orientation, true);
+
+        // Add a delay to ensure that the map is fully loaded.
+        await this.player.sleep(250);
+
+        // Sanity Check to ensure the player is at the correct position.
+        this.player.move(teleporterObj.destinationPos[0], teleporterObj.destinationPos[1], teleporterObj.orientation, true);
+
+        // Slowly reveal the new map scene.
+        for (var i = 0; i < 20; i++) {
+            this.transitionOpacity -= 0.05;
+            await this.player.sleep(20);
+        }
+
+        this.currentlyDoingTransition = false;
+        this.player.unlockControlsAfterTransition();
     }
 }
