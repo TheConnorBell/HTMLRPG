@@ -1,0 +1,29 @@
+{
+    "dialogue": [
+        {
+            "id":"neverTalked",
+            "req":"",
+            "text":[
+                {
+                    "name":"Green Knight",
+                    "text":"Who are you!? How did you get in here!?"
+                },{
+                    "name":"Green Knight",
+                    "text":"Oh, the door was unlocked? Well you shouldn't just walk into random houses anyway."
+                },{
+                    "name":"Green Knight",
+                    "text":"Please leave now."
+                }
+            ]
+        },{
+            "id":"afterTalked",
+            "req":"{DIALOGUE}-{green_knight/neverTalked}",
+            "text":[
+                {
+                    "name":"Green Knight",
+                    "text":"Why are you still here? Go away."
+                }
+            ]
+        }
+    ]
+}
