@@ -7,12 +7,14 @@ export class InputController {
         "down":"ArrowDown",
         "interact":"e",
         "menu":"Tab"
-    }
+    };
+
+    lastNonMovementButtonPress = {};
 
     movementInputs = {};
     otherInputs = {};
 
-    inputsLocked = false;
+    movementInputsLocked = false;
     
     constructor(player) {
 
@@ -52,12 +54,12 @@ export class InputController {
         });
     }
 
-    lockInputs(lock) {
-        this.inputsLocked = lock;
+    lockMovementInputs(lock) {
+        this.movementInputsLocked = lock;
     }
 
-    areInputsLocked() {
-        return this.inputsLocked;
+    areMovementInputsLocked() {
+        return this.movementInputsLocked;
     }
 
     getActiveMovementInputs(option = null) {
@@ -69,26 +71,38 @@ export class InputController {
         
     }
 
-    checkMovement() {
+    checkInputs() {
 
         // Check if movement is currently allowed.
-        if (this.inputsLocked || (this.player.getSubX() != 0 && this.player.getSubY() != 0)) {
+        if (this.movementInputsLocked || (this.player.getSubX() != 0 && this.player.getSubY() != 0) || this.player.isPlayerUsingTeleporter()) {
             return;
         }
 
         // Check if the each movement keybind is being used.
         if (this.movementInputs[this.keybinds["left"]] && this.movementInputs[this.keybinds["left"]] != -1) {
             // Return the movement values to the main file so they can be passed along to the player for movement.
-            this.player.doMovementProcess(-1, 0, 0, this.movementInputs[this.keybinds["left"]])
+            this.player.doMovementProcess(-1, 0, 0, this.movementInputs[this.keybinds["left"]]);
+            return;
 
         } else if (this.movementInputs[this.keybinds["right"]] && this.movementInputs[this.keybinds["right"]] != -1) {
-            this.player.doMovementProcess(1, 0, 1, this.movementInputs[this.keybinds["right"]])
+            this.player.doMovementProcess(1, 0, 1, this.movementInputs[this.keybinds["right"]]);
+            return;
 
         } else if (this.movementInputs[this.keybinds["up"]] && this.movementInputs[this.keybinds["up"]] != -1) {
-            this.player.doMovementProcess(0, -1, 2, this.movementInputs[this.keybinds["up"]])
+            this.player.doMovementProcess(0, -1, 2, this.movementInputs[this.keybinds["up"]]);
+            return;
             
         } else if (this.movementInputs[this.keybinds["down"]] && this.movementInputs[this.keybinds["down"]] != -1) {
-            this.player.doMovementProcess(0, 1, 3, this.movementInputs[this.keybinds["down"]])
+            this.player.doMovementProcess(0, 1, 3, this.movementInputs[this.keybinds["down"]]);
+            return;
         }
+
+        // Check other inputs which should have a lower priority then movement.
+        if (this.otherInputs[this.keybinds["interact"]] && this.otherInputs[this.keybinds["interact"]] != -1 && this.otherInputs[this.keybinds["interact"]] != this.lastNonMovementButtonPress[this.keybinds["interact"]]) {
+            this.lastNonMovementButtonPress[this.keybinds["interact"]] = this.otherInputs[this.keybinds["interact"]];
+            this.player.doInteractionProcess();
+        }
+
+
     }
 }

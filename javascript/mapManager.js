@@ -13,9 +13,10 @@ export class MapManager {
 
     adjacentMaps = {};
 
-    constructor(renderer, player) {
+    constructor(renderer, player, dialogueManager) {
         this.renderer = renderer;
         this.player = player;
+        this.dialogueManager = dialogueManager;
     }
 
     async loadMapFile(mapSrcPath, isAdjacentMap = false) {
@@ -100,6 +101,16 @@ export class MapManager {
                 if (!currentAdjacentMaps.includes(map)) {
                     // if map not in currentAdjacentMaps, remove it from memory.
                     delete this.adjacentMaps[map];
+                }
+            }
+
+            // Clear existing loaded dialogue.
+            this.dialogueManager.clearLoadedDialogue();
+
+            // Load the current maps dialogue.
+            for (var i = 0; i < this.gameMapInteractors.length; i++) {
+                if (this.gameMapInteractors[i].interactable == 1) {
+                    this.dialogueManager.loadDialogue(this.gameMapInteractors[i].dialogue);
                 }
             }
         }

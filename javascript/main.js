@@ -1,7 +1,8 @@
 import { Player } from "./player.js";
 import { Renderer } from "./renderer.js";
 import { InputController} from "./inputController.js";
-import { MapManager } from "./mapManager.js"
+import { MapManager } from "./mapManager.js";
+import { DialogueManager } from "./dialogueManager.js";
 
 var canvas = null
 var context = null;
@@ -11,6 +12,9 @@ var renderer;
 
 // The input controller instance.
 var inputController;
+
+// The dialogue manager instance.
+var dialogueManager;
 
 // The map manager instance.
 var mapManager;
@@ -48,8 +52,11 @@ window.onload = function() {
     renderer.loadIntoTextureMemory(defaultPlayerSprite);
     player.addRenderer(renderer);
 
+    // Create the dialogue manager.
+    dialogueManager = new DialogueManager();
+
     // Create the map manager instance.
-    mapManager = new MapManager(renderer, player);
+    mapManager = new MapManager(renderer, player, dialogueManager);
     renderer.addMapManager(mapManager);
     player.addMapManager(mapManager);
 
@@ -70,7 +77,7 @@ function mainGameLoop() {
     function loop() {
 
         // Check what keys are being pressed.
-        inputController.checkMovement();
+        inputController.checkInputs();
 
         // Draw the games tiles.
         renderer.drawFrame();

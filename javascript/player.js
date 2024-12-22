@@ -19,6 +19,8 @@ export class Player {
     renderer = null;
     inputController = null;
     mapManager = null;
+    dialogueManager = null;
+
     usingTeleporter = false;
 
     constructor(texturePath, xPos, yPos, orientation) {
@@ -38,6 +40,10 @@ export class Player {
 
     addMapManager(mapManager) {
         this.mapManager = mapManager;
+    }
+
+    addDialogueManager(dialogueManager) {
+        this.dialogueManager = dialogueManager;
     }
 
     setTexturePath(newPath) {
@@ -184,7 +190,7 @@ export class Player {
 
             // Lock the users controls.
             if (this.inputController) {
-                this.inputController.lockInputs(true);
+                this.inputController.lockMovementInputs(true);
             }
             
             movementDuration *= 2;
@@ -234,10 +240,44 @@ export class Player {
 
     unlockControlsAfterTransition() {
         this.usingTeleporter = false;
-        this.inputController.lockInputs(false);
+        this.inputController.lockMovementInputs(false);
+    }
+
+    isPlayerUsingTeleporter() {
+        return this.usingTeleporter;
     }
 
     sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    doInteractionProcess() {
+
+        var facingXCoordinate = this.x;
+        var facingYCoordinate = this.y;
+
+        // Get coordinates of tile infront of player.
+        if (this.orientation == 0) {
+            facingXCoordinate -= 1;
+        } else if (this.orientation == 1) {
+            facingXCoordinate += 1;
+        } else if (this.orientation == 2) {
+            facingYCoordinate -= 1;
+        } else if (this.orientation == 3) {
+            facingYCoordinate += 1;
+        }
+
+        var interactorAtDestination = this.mapManager.getMapInteractors(facingXCoordinate, facingYCoordinate);
+
+        // Return if there is no interactor, or it is inactive.
+        if (interactorAtDestination == null || interactorAtDestination.interactable == 0) {
+            return;
+        }
+        
+        console.log("Talking to " + interactorAtDestination.dialogue);
+
+        this.dialogueManager.progressDialogue(interactorAtDestination.dialogue, interactorAtDestination.dialogueID);
+
+        // Get the dialogue tree.
     }
 }
