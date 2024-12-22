@@ -1,6 +1,7 @@
 import { Player } from "./player.js";
 import { Renderer } from "./renderer.js";
 import { InputController} from "./inputController.js";
+import { MapManager } from "./mapManager.js"
 
 var canvas = null
 var context = null;
@@ -10,6 +11,9 @@ var renderer;
 
 // The input controller instance.
 var inputController;
+
+// The map manager instance.
+var mapManager;
 
 // The map file.
 const defaultMapFile = "assets/maps/spawn.json";
@@ -35,6 +39,9 @@ var currentSecond = 0;
 var frameCount = 0;
 var prevFramesPerSecond = 0;
 
+// Decides whether movement controls should be locked.
+var lockControls = [false];
+
 // Player movement variables.
 
 var currentlyDoingTransition = false;
@@ -57,17 +64,23 @@ window.onload = function() {
     canvas = document.getElementById("gameCanvas");
     context = canvas.getContext('2d');
 
-    // Create the renderer instance.
-    renderer = new Renderer(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount);
-
     // Create the player instance.
     player = new Player(defaultPlayerSprite, 0, 0, 3);
+
+    // Create the renderer instance.
+    renderer = new Renderer(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player);
     renderer.loadIntoTextureMemory(defaultPlayerSprite);
 
-    // Create the input controller instance.
-    inputController = new InputController();
+    // Create the map manager instance.
+    mapManager = new MapManager(renderer, player);
+    renderer.addMapManager(mapManager);
 
-    readMapFile(defaultMapFile);
+    // Create the input controller instance.
+    inputController = new InputController(player);
+    player.addInputController(inputController);
+
+    //readMapFile(defaultMapFile);
+    mapManager.loadMapFile(defaultMapFile);
 
     // Start the main loop.
     mainGameLoop();
@@ -78,6 +91,16 @@ function mainGameLoop() {
     // Equivalent of a while(true) loop to run infinitely.
     function loop() {
 
+        const movementArray = inputController.checkMovement();
+        if (movementArray) {
+            const playerX = player.getX();
+            const playerY = player.getY();
+            const tileAtPosition = getTileAtPosition(movementArray[0] + playerX, movementArray[1] + playerY);
+            const teleporterAtPosition = getTeleporterAtPosition(movementArray[0] + playerX, movementArray[1] + playerY);
+            const interactorAtPosition = getInteractorAtPosition(movementArray[0] + playerX, movementArray[1] + playerY);
+            player.doMovementProcess(movementArray[0], movementArray[1], movementArray[2], movementArray[3], lockControls, tileAtPosition, teleporterAtPosition, interactorAtPosition);
+        }
+
         // Draw the games tiles.
         drawGame();
 
@@ -87,6 +110,18 @@ function mainGameLoop() {
     // Begin the loop.
     requestAnimationFrame(loop);
 
+}
+
+function getTileAtPosition(x, y) {
+    return gameMapCells.find((cell) => cell.x == x && cell.y == y);
+}
+
+function getTeleporterAtPosition(x, y) {
+    return gameMapTeleporters.find((teleporter) => teleporter.x == x && teleporter.y == y);
+}
+
+function getInteractorAtPosition(x, y) {
+    return gameMapInteractors.find((interactor) => interactor.x == x && interactor.y == y);
 }
 
 async function readMapFile(src) {
@@ -132,23 +167,6 @@ async function readMapFile(src) {
 function drawGame() {
     if (canvas == null || context == null || gameMapCells == null || !renderer) {
         return;
-    }
-
-    // Check player movement.
-    if (inputController.areInputsLocked() && player.getSubX == 0 && player.getSubY == 0) {
-
-        // Check player movements
-        movementInputs = inputController.getActiveMovementInputs();
-
-        if (keyPresses["ArrowLeft"] && keyPresses["ArrowLeft"] != -1 && (keyPresses["ArrowLeft"] + tapRotationDuration < Date.now() || player.getOrientation() == 0)) {
-            movePlayer(-1, 0, 0);
-        } else if (keyPresses["ArrowRight"] && keyPresses["ArrowRight"] != -1 && (keyPresses["ArrowRight"] + tapRotationDuration < Date.now() || player.getOrientation() == 1)) {
-            movePlayer(1, 0, 1);
-        } else if (keyPresses["ArrowUp"] && keyPresses["ArrowUp"] != -1 && (keyPresses["ArrowUp"] + tapRotationDuration < Date.now() || player.getOrientation() == 2)) {
-            movePlayer(0, -1, 2);
-        } else if (keyPresses["ArrowDown"] && keyPresses["ArrowDown"] != -1 && (keyPresses["ArrowDown"] + tapRotationDuration < Date.now() || player.getOrientation() == 3)) {
-            movePlayer(0, 1, 3);
-        }
     }
 
     renderer.drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, player, mapWidth, mapHeight, currentlyDoingTransition);

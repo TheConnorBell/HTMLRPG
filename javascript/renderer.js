@@ -9,15 +9,22 @@ export class Renderer {
     defaultTextureFolderPath = "assets/textures/"
     textureMap = {};
 
-    constructor(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount) {
+    mapManager;
+
+    constructor(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player) {
         this.canvas = canvas;
         this.context = context;
         this.tileSize = tileSize;
         this.canvasWidthToCenter = Math.floor(screenCellWidthAmount / 2);
         this.canvasHeightToCenter = Math.floor(screenCellHeightAmount / 2);
+        this.player = player;
         
         // Keep pixels sharp.
         this.context.imageSmoothingEnabled = false;
+    }
+
+    addMapManager(mapManager) {
+        this.mapManager = mapManager;
     }
 
     clearTextureMemory() {
@@ -45,16 +52,16 @@ export class Renderer {
         return true;
     }
 
-    drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, player, mapWidth, mapHeight, currentlyDoingTransition) {
+    drawFrame(gameMapCells, gameMapTeleporters, gameMapDecorations, gameMapInteractors, currentlyDoingTransition) {
 
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        const playerX = player.getX();
-        const playerY = player.getY();
+        const playerX = this.player.getX();
+        const playerY = this.player.getY();
 
-        const playerSubX = player.getSubX();
-        const playerSubY = player.getSubY();
+        const playerSubX = this.player.getSubX();
+        const playerSubY = this.player.getSubY();
 
         // Get the coordinates the top left tile on the visible canvas area.
         const xOffset = playerX - this.canvasWidthToCenter;
@@ -105,7 +112,7 @@ export class Renderer {
             var teleporterTexturePath = this.textureMap[currentTeleporter.texturePath];
 
             // Change the teleporter texture if the player is currently using the teleporter.
-            if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTexturePath != "" && currentlyDoingTransition) {
+            if (currentTeleporter.teleporterType == "door" && currentTeleporter.useTexturePath != "" && currentlyDoingTransition == true) {
                 teleporterTexturePath = this.textureMap[currentTeleporter.useTexturePath];
             }
 
@@ -185,7 +192,7 @@ export class Renderer {
 
         
         // Draw player.
-        this.drawPlayer(player);
+        this.drawPlayer();
 
 
         // Draw any remaining decorations which should be visible on the screen.
@@ -196,8 +203,8 @@ export class Renderer {
             // Draw the decoration.
             this.drawObject(
                 this.textureMap[currentDecoration.texturePath],
-                (currentDecoration.x - xOffset + player.getSubX()) * this.tileSize,
-                (currentDecoration.y - 1 - yOffset + player.getSubY()) * this.tileSize,
+                (currentDecoration.x - xOffset + playerSubX) * this.tileSize,
+                (currentDecoration.y - yOffset + playerSubY) * this.tileSize,
                 currentDecoration.width,
                 currentDecoration.height
             );
@@ -224,8 +231,18 @@ export class Renderer {
         }
     }
 
-    drawPlayer(player) {
-        this.context.drawImage(this.textureMap[player.getTexturePath()], ((this.tileSize/2) * player.getCurrentWalkPose()), (player.getOrientation() * this.tileSize), this.tileSize/2, this.tileSize, this.tileSize * this.canvasWidthToCenter, this.tileSize * this.canvasHeightToCenter - this.tileSize, this.tileSize, this.tileSize*2);
+    drawPlayer() {
+        this.context.drawImage(
+            this.textureMap[this.player.getTexturePath()],
+            (this.tileSize/2) * this.player.getCurrentWalkPose(),
+            this.player.getOrientation() * this.tileSize,
+            this.tileSize/2,
+            this.tileSize,
+            this.tileSize * this.canvasWidthToCenter,
+            this.tileSize * this.canvasHeightToCenter - this.tileSize,
+            this.tileSize,
+            this.tileSize*2
+        );
     }
 
     drawObject(texturePath, xPos, yPos, width = 1, height = 1) {

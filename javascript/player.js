@@ -1,20 +1,33 @@
 const amountOfStepsBetweenFrameSwaps = 4;
+const tapRotationDuration = 120; // ms
+
+const movementStepAmount = 8;
+const movementTime = 250; // ms
 
 export class Player {
 
     xSubPositionValue = 0;
     ySubPositionValue = 0;
 
+    currentlyMoving = false;
+
     lastLeg = "left";
     currentlyStepping = false;
     currentStepCount = 0;
     amountOfStepsBetweenFrameSwaps = 0;
+
+    inputController = null;
+    usingTeleporter = false;
 
     constructor(texturePath, xPos, yPos, orientation) {
         this.texturePath = texturePath;
         this.x = xPos;
         this.y = yPos;
         this.orientation = orientation; // Left=0, Right=1, Up=2, Down=3.
+    }
+
+    addInputController(inputController) {
+        this.inputController = inputController;
     }
 
     setTexturePath(newPath) {
@@ -106,7 +119,61 @@ export class Player {
             return 1;
         } else if (this.currentlyStepping && this.lastLeg == "right") {
             return 2;
+        }     
+    }
+
+    async doMovementProcess(xIncrease, yIncrease, orientation, keyStartPushTime, lockControls, cellAtDestination = null, teleporterAtDestination = null, interactorAtDestination = null) {
+
+        // Return if the player is already moving.
+        if (this.currentlyMoving) {
+            return;
         }
-                
+
+        // Rotate the player if they are not already facing that direction.
+        if (this.orientation != orientation && keyStartPushTime + tapRotationDuration > Date.now()) {
+            this.move(0, 0, orientation);
+            this.currentlyMoving = true;
+            await this.sleep(tapRotationDuration);
+            this.currentlyMoving = false;
+            return;
+        }
+
+        // Return if there is no cell for the player to walk on to or the cell prevents walking in this direction.
+        if (cellAtDestination == null || cellAtDestination.walkable[orientation] == 0) {
+            return;
+        }
+
+        // Return if there is a teleporter at the destination and it is not walkable.
+        if (teleporterAtDestination && teleporterAtDestination.walkable[orientation] == 0) {
+            return;
+        }
+
+        // Return if there is a collidable interactor at the destination.
+        if (interactorAtDestination && interactorAtDestination.collidable == 1) {
+            return;
+        }
+
+        // Do different movement steps depending on if there is a teleporter or not.
+        if (teleporterAtDestination && teleporterAtDestination.enabled) {
+            // If the player is walking into a teleporter
+            this.usingTeleporter = true;
+            if (this.inputController) {
+                this.inputController.lockInputs(true);
+            }
+            
+
+        }
+
+        this.currentlyMoving = true;
+
+        this.move(xIncrease, yIncrease, orientation);
+        await this.sleep(200);
+
+        this.currentlyMoving = false;
+
+    }
+
+    sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
