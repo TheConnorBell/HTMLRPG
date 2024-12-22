@@ -54,6 +54,7 @@ window.onload = function() {
 
     // Create the dialogue manager.
     dialogueManager = new DialogueManager();
+    player.addDialogueManager(dialogueManager);
 
     // Create the map manager instance.
     mapManager = new MapManager(renderer, player, dialogueManager);

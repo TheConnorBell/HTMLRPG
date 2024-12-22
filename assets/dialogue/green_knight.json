@@ -3,6 +3,7 @@
         {
             "id":"neverTalked",
             "req":"",
+            "nextID":"foundItem",
             "text":[
                 {
                     "name":"Green Knight",
@@ -14,11 +15,19 @@
                     "name":"Green Knight",
                     "text":"Please leave now."
                 }
-            ]
+            ],
+            "notMetReqText":[]
         },{
-            "id":"afterTalked",
-            "req":"{DIALOGUE}-{green_knight/neverTalked}",
+            "id":"foundItem",
+            "req":"ITEM=RED_JEWEL",
+            "nextID":"",
             "text":[
+                {
+                    "name":"Green Knight",
+                    "text":"Wow, you found my lost jewel. I can't take it yet so you hold onto it for now."
+                }
+            ],
+            "notMetReqText":[
                 {
                     "name":"Green Knight",
                     "text":"Why are you still here? Go away."

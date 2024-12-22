@@ -23,6 +23,9 @@ export class Player {
 
     usingTeleporter = false;
 
+    // Temporary variable until game state saving added.
+    dialogueProgressPoints = {};
+
     constructor(texturePath, xPos, yPos, orientation) {
         this.texturePath = texturePath;
         this.x = xPos;
@@ -273,11 +276,17 @@ export class Player {
         if (interactorAtDestination == null || interactorAtDestination.interactable == 0) {
             return;
         }
-        
-        console.log("Talking to " + interactorAtDestination.dialogue);
 
-        this.dialogueManager.progressDialogue(interactorAtDestination.dialogue, interactorAtDestination.dialogueID);
+        var currentDialogueID = interactorAtDestination.dialogueID;
 
-        // Get the dialogue tree.
+        // See if the dialogue ID  is different to the initial ID.
+        if (this.dialogueProgressPoints[interactorAtDestination.dialogue] && this.dialogueProgressPoints[interactorAtDestination.dialogue] != interactorAtDestination.dialogueID) {
+            currentDialogueID = this.dialogueProgressPoints[interactorAtDestination.dialogue];
+        }
+
+        // Get the dialogue and the new dialogue ID state to store.
+        var newDialogueID = this.dialogueManager.progressDialogue(interactorAtDestination.dialogue, currentDialogueID);
+        this.dialogueProgressPoints[interactorAtDestination.dialogue] = newDialogueID;
+
     }
 }
