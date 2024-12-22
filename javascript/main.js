@@ -69,10 +69,14 @@ function mainGameLoop() {
     // Equivalent of a while(true) loop to run infinitely.
     function loop() {
 
+        // Check what keys are being pressed.
         inputController.checkMovement();
 
         // Draw the games tiles.
-        drawGame();
+        renderer.drawFrame();
+
+        updateFPS();
+        updatePositionDisplay();
 
         // Start the next loop.
         requestAnimationFrame(loop);
@@ -82,16 +86,7 @@ function mainGameLoop() {
 
 }
 
-// Draw each updated frame.
-function drawGame() {
-    if (canvas == null || context == null || !renderer) {
-        return;
-    }
-
-    // Draw the frame.
-    renderer.drawFrame();
-
-    // Update FPS.
+function updateFPS() {
     var second = Math.floor(Date.now()/1000);
     if (second != currentSecond) {
         currentSecond = second;
@@ -101,8 +96,9 @@ function drawGame() {
     } else {
         frameCount++;
     }
+}
 
-    // Update Position values.
+function updatePositionDisplay() {
     document.getElementById("Position").innerHTML = "Position X=" + player.getX() + " Y=" + player.getY();
     document.getElementById("SubPosition").innerHTML = "Sub Position X=" + player.getSubX() + " Y=" + player.getSubY();
 }

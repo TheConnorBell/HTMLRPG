@@ -59,6 +59,10 @@ export class Renderer {
 
     drawFrame() {
 
+        if (!this.canvas) {
+            return;
+        }
+
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
