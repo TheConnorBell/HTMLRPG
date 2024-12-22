@@ -36,7 +36,7 @@ export class Renderer {
         this.textureMap = {};
     }
 
-    loadIntoTextureMemory(texturePath) {
+    async loadIntoTextureMemory(texturePath) {
         // Check the texture path exists
         if (!texturePath || texturePath == "" || texturePath == " ") {
             return;
@@ -294,12 +294,6 @@ export class Renderer {
         }
 
         await this.mapManager.loadMapFile(teleporterObj.destination);
-        this.player.move(teleporterObj.destinationPos[0], teleporterObj.destinationPos[1], teleporterObj.orientation, true);
-
-        // Add a delay to ensure that the map is fully loaded.
-        await this.player.sleep(250);
-
-        // Sanity Check to ensure the player is at the correct position.
         this.player.move(teleporterObj.destinationPos[0], teleporterObj.destinationPos[1], teleporterObj.orientation, true);
 
         // Slowly reveal the new map scene.
