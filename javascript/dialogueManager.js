@@ -52,17 +52,31 @@ export class DialogueManager {
             }
         }
 
+        // Set the dialogue variables to return.
+        var dialogue = {
+            "name":null,
+            "text":null,
+            "dialoguePointID":this.currentDialoguePoint
+        }
+
         if (!this.doesPlayerMeetRequirements(dialogeTreeOrigin.req)) {
             // Display the requirement not met dialogue.
             console.log(dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].name + ": " + dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].text);
+
+            dialogue.name = dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].name;
+            dialogue.text = dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].text;
+
         } else {
             // Display the dialogue.
             console.log(dialogeTreeOrigin.text[this.currentDialogueTextStep].name + ": " + dialogeTreeOrigin.text[this.currentDialogueTextStep].text);
+
+            dialogue.name = dialogeTreeOrigin.text[this.currentDialogueTextStep].name;
+            dialogue.text = dialogeTreeOrigin.text[this.currentDialogueTextStep].text;
         }
 
         this.currentDialogueTextStep++;
 
-        return this.currentDialoguePoint;
+        return dialogue;
     
     }
 

@@ -14,7 +14,10 @@ export class Renderer {
 
     transitionOpacity = 0;
     currentlyDoingTransition = false;
+
     dialogueBoxEnabled = false;
+    currentDialogueName = "";
+    currentDialogueText = "";
 
     constructor(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player) {
         this.canvas = canvas;
@@ -75,6 +78,11 @@ export class Renderer {
         if (!this.canvas) {
             return;
         }
+
+        var DPR = window.devicePixelRatio ?? 1;
+        this.context.width = window.innerWidth*DPR;
+        this.context.height = window.innerHeight*DPR;
+        this.context.scale(DPR, DPR);
 
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -260,7 +268,37 @@ export class Renderer {
 
         // Draw the dialogue box if it is enabled.
         if (this.dialogueBoxEnabled) {
+            
+            // Draw the dialogue box.
             this.drawObject(this.textureMap["dialogue_box_0"], 0, (this.screenHeight - 3) * this.tileSize, this.screenWidth, 3);
+            
+            // Set the text formatting styles.
+            this.context.font =  `32px pixel`;
+            this.context.fillStyle = "black";
+            this.context.textBaseline = 'top';
+
+            // Split the full string of text into individuals words to determine word wrap.
+            var words = (this.currentDialogueName + ": " + this.currentDialogueText).split(" ");
+            var lines = []
+            var currentLine = words[0]
+
+            for (var i = 1; i < words.length; i++) {
+                var word = words[i];
+                var width = this.context.measureText(currentLine + " " + word).width;
+
+                if (width <= (13 * this.tileSize)) {
+                    currentLine += " " + word;
+                } else {
+                    lines.push(currentLine);
+                    currentLine = word;
+                }
+            }
+            lines.push(currentLine);
+
+            // Display each line of text.
+            for (var i = 0; i < lines.length; i++) {
+                this.context.fillText(lines[i], this.tileSize, (this.screenHeight - 2) * this.tileSize - 16 + (i * 27));
+            }
         }
 
 
@@ -336,5 +374,12 @@ export class Renderer {
         } else {
             this.dialogueBoxEnabled = option;
         }
+    }
+
+    showDialogue(name, text) {
+        this.currentDialogueName = name;
+        this.currentDialogueText = text;
+
+        console.log(name, text);
     }
 }

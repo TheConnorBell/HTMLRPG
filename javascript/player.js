@@ -285,9 +285,14 @@ export class Player {
         }
 
         // Get the dialogue and the new dialogue ID state to store.
-        var newDialogueID = this.dialogueManager.progressDialogue(interactorAtDestination.dialogue, currentDialogueID);
+        var dialogueToDisplay = this.dialogueManager.progressDialogue(interactorAtDestination.dialogue, currentDialogueID);
+
+        // Display the dialogue
         this.renderer.toggleDialogueBox(true);
-        this.dialogueProgressPoints[interactorAtDestination.dialogue] = newDialogueID;
+        this.renderer.showDialogue(dialogueToDisplay.name, dialogueToDisplay.text);
+
+        // Store the current dialogue progress for the npc
+        this.dialogueProgressPoints[interactorAtDestination.dialogue] = dialogueToDisplay.dialoguePointID;
 
     }
 }

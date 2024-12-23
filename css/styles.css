@@ -25,3 +25,8 @@ html, body {
 a {
     margin-right: 10px;
 }
+
+@font-face {
+    font-family: pixel;
+    src: url("../assets/fonts/pixel.ttf");
+}
