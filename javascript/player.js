@@ -286,6 +286,7 @@ export class Player {
 
         // Get the dialogue and the new dialogue ID state to store.
         var newDialogueID = this.dialogueManager.progressDialogue(interactorAtDestination.dialogue, currentDialogueID);
+        this.renderer.toggleDialogueBox(true);
         this.dialogueProgressPoints[interactorAtDestination.dialogue] = newDialogueID;
 
     }

@@ -6,13 +6,15 @@ const interactorRenderOffset = 2;
 
 export class Renderer {
 
-    defaultTextureFolderPath = "assets/textures/"
+    defaultTextureFolderPath = "assets/textures/";
+    UItextureFile = "assets/textures/UI/UITextures.json";
     textureMap = {};
 
     mapManager;
 
     transitionOpacity = 0;
     currentlyDoingTransition = false;
+    dialogueBoxEnabled = false;
 
     constructor(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player) {
         this.canvas = canvas;
@@ -47,6 +49,17 @@ export class Renderer {
             const newTexture = new Image();
             newTexture.src = this.defaultTextureFolderPath + texturePath + ".png";
             this.textureMap[texturePath] = newTexture;
+        }
+    }
+
+    async loadUITextures() {
+        const response = await fetch(this.UItextureFile);
+        const UITextureData = await response.json();
+
+        for (let texture in UITextureData) {
+            const newTexture = new Image();
+            newTexture.src = this.defaultTextureFolderPath + UITextureData[texture] + ".png";
+            this.textureMap[texture] = newTexture;
         }
     }
 
@@ -245,6 +258,12 @@ export class Renderer {
             );
         }
 
+        // Draw the dialogue box if it is enabled.
+        if (this.dialogueBoxEnabled) {
+            this.drawObject(this.textureMap["dialogue_box_0"], 0, (this.screenHeight - 3) * this.tileSize, this.screenWidth, 3);
+        }
+
+
         // Draw the screen opacity cover for scene transitions.
         this.context.fillStyle = "rgba(0,0,0," + this.transitionOpacity + ")";
         this.context.fillRect(0, 0, this.screenWidth * this.tileSize, this.screenHeight * this.tileSize);
@@ -308,5 +327,14 @@ export class Renderer {
 
         this.currentlyDoingTransition = false;
         this.player.unlockControlsAfterTransition();
+    }
+
+    toggleDialogueBox(option = null) {
+
+        if (option == null) {
+            this.dialogueBoxEnabled = !this.dialogueBoxEnabled;
+        } else {
+            this.dialogueBoxEnabled = option;
+        }
     }
 }

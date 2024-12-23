@@ -49,7 +49,6 @@ window.onload = function() {
 
     // Create the renderer instance.
     renderer = new Renderer(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player);
-    renderer.loadIntoTextureMemory(defaultPlayerSprite);
     player.addRenderer(renderer);
 
     // Create the dialogue manager.
@@ -65,8 +64,11 @@ window.onload = function() {
     inputController = new InputController(player);
     player.addInputController(inputController);
 
-    //readMapFile(defaultMapFile);
     mapManager.loadMapFile(defaultMapFile);
+
+    // Load the constant textures.
+    renderer.loadIntoTextureMemory(defaultPlayerSprite);
+    renderer.loadUITextures();
 
     // Start the main loop.
     mainGameLoop();
