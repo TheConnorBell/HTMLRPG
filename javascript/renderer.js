@@ -10,6 +10,11 @@ export class Renderer {
     UItextureFile = "assets/textures/UI/UITextures.json";
     textureMap = {};
 
+    // pixel_bit font file location
+    fontFileLocation = "assets/fonts/pixel_bit/pixel_bit.json";
+    fontInformationMap = {};
+    fontTextureMap = {};
+
     mapManager;
 
     transitionOpacity = 0;
@@ -56,6 +61,8 @@ export class Renderer {
     }
 
     async loadUITextures() {
+        
+        // Load UI textures.
         const response = await fetch(this.UItextureFile);
         const UITextureData = await response.json();
 
@@ -64,6 +71,15 @@ export class Renderer {
             newTexture.src = this.defaultTextureFolderPath + UITextureData[texture] + ".png";
             this.textureMap[texture] = newTexture;
         }
+
+        // Load Font texture.
+        const fontResponse = await fetch(this.fontFileLocation);
+        const fontData = await fontResponse.json();
+        this.fontInformationMap[fontData.face] = fontData;
+
+        const fontTexture = new Image();
+        fontTexture.src = fontData.imageFile;
+        this.fontTextureMap[fontData.face] = fontTexture;
     }
 
     isObjectWithinCameraView(xPos, yPos, xOffset, yOffset, positiveXOffset, positiveYOffset, renderOffset) {
@@ -274,8 +290,8 @@ export class Renderer {
             
             // Set the text formatting styles.
             this.context.font =  `32px pixel`;
-            this.context.fillStyle = "black";
-            this.context.textBaseline = 'top';
+            this.context.fillStyle = "red";
+            this.context.textBaseline = 'alphabetic';
 
             // Split the full string of text into individuals words to determine word wrap.
             var words = (this.currentDialogueName + ": " + this.currentDialogueText).split(" ");
@@ -295,9 +311,40 @@ export class Renderer {
             }
             lines.push(currentLine);
 
+            
+            var currentLineLength = 0
+
             // Display each line of text.
             for (var i = 0; i < lines.length; i++) {
-                this.context.fillText(lines[i], this.tileSize, (this.screenHeight - 2) * this.tileSize - 16 + (i * 27));
+
+                currentLineLength = 0;
+
+                // Options for testing to ensure that the bitmap font variant matches the vector font variant.
+                //this.context.textBaseline = 'top';
+                //his.context.fillText(lines[i], this.tileSize, (this.screenHeight - 2) * this.tileSize - 14 + (i * 27));
+                //this.context.textBaseline = 'alphabetic';
+
+                // Loop through each character in the font.
+                for (var j = 0; j < lines[i].length; j++) {
+
+                    // Get the matching character infomation from the font data.
+                    const matchingChar = this.fontInformationMap["pixel_bit"].chars.find((char) => char.id == lines[i][j].charCodeAt());
+
+                    // Draw the font character
+                    this.drawFontCharacter(
+                        this.fontTextureMap["pixel_bit"],
+                        matchingChar.x - matchingChar.xoffset,
+                        matchingChar.y,
+                        matchingChar.width,
+                        matchingChar.height,
+                        this.tileSize + currentLineLength,
+                        (this.screenHeight - 2) * this.tileSize - 12 + (i * 27) + (matchingChar.yoffset *  2)
+                    );
+
+                    // Increase the spacing of the next word
+                    currentLineLength += this.context.measureText(lines[i].slice(j, j+1)).width;
+                }
+
             }
         }
 
@@ -324,6 +371,10 @@ export class Renderer {
 
     drawObject(texturePath, xPos, yPos, width = 1, height = 1) {
         this.context.drawImage(texturePath, xPos, yPos, this.tileSize * width, this.tileSize * height);
+    }
+
+    drawFontCharacter(texturePath, sx, sy, swidth, sheight, xPos, yPos) {
+        this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos, swidth * 2, sheight * 2);
     }
 
     drawInteractor(interactorType, texturePath, xPos, yPos, width, height, sx = 0, sy = 0, swidth = width, sheight = height) {
@@ -379,7 +430,9 @@ export class Renderer {
     showDialogue(name, text) {
         this.currentDialogueName = name;
         this.currentDialogueText = text;
+    }
 
-        console.log(name, text);
+    loadFont() {
+        
     }
 }

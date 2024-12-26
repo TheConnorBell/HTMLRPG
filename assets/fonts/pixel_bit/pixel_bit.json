@@ -1,5 +1,6 @@
 {
-    "face":"pixel bit",
+    "face":"pixel_bit",
+    "imageFile":"assets/fonts/pixel_bit/pixel_bit.png",
     "size":16,
     "base":11,
     "scaleW":84,
