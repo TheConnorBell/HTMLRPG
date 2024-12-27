@@ -21,8 +21,7 @@ export class Renderer {
     currentlyDoingTransition = false;
 
     dialogueBoxEnabled = false;
-    currentDialogueName = "";
-    currentDialogueText = "";
+    currentDialogueLines = [];
 
     constructor(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player) {
         this.canvas = canvas;
@@ -292,30 +291,12 @@ export class Renderer {
             this.context.font =  `32px pixel`;
             this.context.fillStyle = "red";
             this.context.textBaseline = 'alphabetic';
-
-            // Split the full string of text into individuals words to determine word wrap.
-            var words = (this.currentDialogueName + ": " + this.currentDialogueText).split(" ");
-            var lines = []
-            var currentLine = words[0]
-
-            for (var i = 1; i < words.length; i++) {
-                var word = words[i];
-                var width = this.context.measureText(currentLine + " " + word).width;
-
-                if (width <= (13 * this.tileSize)) {
-                    currentLine += " " + word;
-                } else {
-                    lines.push(currentLine);
-                    currentLine = word;
-                }
-            }
-            lines.push(currentLine);
-
             
             var currentLineLength = 0
+            const dialogueLines = this.currentDialogueLines;
 
             // Display each line of text.
-            for (var i = 0; i < lines.length; i++) {
+            for (var i = 0; i < dialogueLines.length; i++) {
 
                 currentLineLength = 0;
 
@@ -325,10 +306,10 @@ export class Renderer {
                 //this.context.textBaseline = 'alphabetic';
 
                 // Loop through each character in the font.
-                for (var j = 0; j < lines[i].length; j++) {
+                for (var j = 0; j < dialogueLines[i].length; j++) {
 
                     // Get the matching character infomation from the font data.
-                    const matchingChar = this.fontInformationMap["pixel_bit"].chars.find((char) => char.id == lines[i][j].charCodeAt());
+                    const matchingChar = this.fontInformationMap["pixel_bit"].chars.find((char) => char.id == dialogueLines[i][j].charCodeAt());
 
                     // Draw the font character
                     this.drawFontCharacter(
@@ -342,7 +323,7 @@ export class Renderer {
                     );
 
                     // Increase the spacing of the next word
-                    currentLineLength += this.context.measureText(lines[i].slice(j, j+1)).width;
+                    currentLineLength += this.context.measureText(dialogueLines[i].slice(j, j+1)).width;
                 }
 
             }
@@ -427,8 +408,29 @@ export class Renderer {
         }
     }
 
-    showDialogue(name, text) {
-        this.currentDialogueName = name;
-        this.currentDialogueText = text;
+    setDialogueLines(dialogueLines) {
+        this.currentDialogueLines = dialogueLines;
+    }
+
+    calculateDialogueLineCount(name, text) {
+        this.context.font =  `32px pixel`;
+
+        var words = (name + ": " + text).split(" ");
+        var lines = [];
+        var currentLine = words[0];
+
+        for (var i = 1; i < words.length; i++) {
+            var word = words[i];
+            var width = this.context.measureText(currentLine + " " + word).width;
+
+            if (width <= (13 * this.tileSize)) {
+                currentLine += " " + word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        return lines;
     }
 }
