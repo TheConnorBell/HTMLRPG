@@ -14,14 +14,23 @@ export class Renderer {
     fontFileLocation = "assets/fonts/pixel_bit/pixel_bit.json";
     fontInformationMap = {};
     fontTextureMap = {};
+    
+    // dialogue variables.
+    dialogueBoxEnabled = false;
+    currentDialogueLines = [];
+    currentDialogueAnimationCharacter = 0;
+    currentDialogueAnimationLine = 0;
+    animatedDialogueByWord = false;
+    animatedDialogueSpeed = 30; //ms
+    lastDialogueCharTimestamp = null;
+    animatedDialogueInitialDelay = 200; //ms
+    dialogueStartTimestamp = null;
 
     mapManager;
 
     transitionOpacity = 0;
     currentlyDoingTransition = false;
 
-    dialogueBoxEnabled = false;
-    currentDialogueLines = [];
 
     constructor(canvas, context, tileSize, screenCellWidthAmount, screenCellHeightAmount, player) {
         this.canvas = canvas;
@@ -287,45 +296,74 @@ export class Renderer {
             // Draw the dialogue box.
             this.drawObject(this.textureMap["dialogue_box_0"], 0, (this.screenHeight - 3) * this.tileSize, this.screenWidth, 3);
             
-            // Set the text formatting styles.
-            this.context.font =  `32px pixel`;
-            this.context.fillStyle = "red";
-            this.context.textBaseline = 'alphabetic';
-            
-            var currentLineLength = 0
-            const dialogueLines = this.currentDialogueLines;
+            // Check if the dialogue should start being displayed yet.
+            if (this.dialogueStartTimestamp != null && this.dialogueStartTimestamp <= Date.now()) {
 
-            // Display each line of text.
-            for (var i = 0; i < dialogueLines.length; i++) {
+                // Set the text formatting styles.
+                this.context.font =  `32px pixel`;
+                this.context.fillStyle = "red";
+                this.context.textBaseline = 'alphabetic';
+                
+                var currentLineLength = 0
+                const dialogueLines = this.currentDialogueLines;
 
-                currentLineLength = 0;
+                // Display each line of text.
+                for (var i = 0; i < dialogueLines.length; i++) {
 
-                // Options for testing to ensure that the bitmap font variant matches the vector font variant.
-                //this.context.textBaseline = 'top';
-                //his.context.fillText(lines[i], this.tileSize, (this.screenHeight - 2) * this.tileSize - 14 + (i * 27));
-                //this.context.textBaseline = 'alphabetic';
+                    currentLineLength = 0;
 
-                // Loop through each character in the font.
-                for (var j = 0; j < dialogueLines[i].length; j++) {
+                    // prevent future dialogue lines from displaying prematurely.
+                    if (i > this.currentDialogueAnimationLine) {
+                        break;
+                    }
 
-                    // Get the matching character infomation from the font data.
-                    const matchingChar = this.fontInformationMap["pixel_bit"].chars.find((char) => char.id == dialogueLines[i][j].charCodeAt());
+                    // Options for testing to ensure that the bitmap font variant matches the vector font variant.
+                    //this.context.textBaseline = 'top';
+                    //his.context.fillText(lines[i], this.tileSize, (this.screenHeight - 2) * this.tileSize - 14 + (i * 27));
+                    //this.context.textBaseline = 'alphabetic';
 
-                    // Draw the font character
-                    this.drawFontCharacter(
-                        this.fontTextureMap["pixel_bit"],
-                        matchingChar.x - matchingChar.xoffset,
-                        matchingChar.y,
-                        matchingChar.width,
-                        matchingChar.height,
-                        this.tileSize + currentLineLength,
-                        (this.screenHeight - 2) * this.tileSize - 12 + (i * 27) + (matchingChar.yoffset *  2)
-                    );
+                    // Loop through each character in the font.
+                    for (var j = 0; j < dialogueLines[i].length; j++) {
 
-                    // Increase the spacing of the next word
-                    currentLineLength += this.context.measureText(dialogueLines[i].slice(j, j+1)).width;
+                        // Exit if the character should not be displayed yet.
+                        if (j > this.currentDialogueAnimationCharacter && i == this.currentDialogueAnimationLine) {
+                            break;
+                        }
+
+                        // Check if the character is before the latest character, is on a previous line, or is the current character and the timestamp to display has passed.
+                        if (j < this.currentDialogueAnimationCharacter || i < this.currentDialogueAnimationLine || (j == this.currentDialogueAnimationCharacter && this.lastDialogueCharTimestamp + this.animatedDialogueSpeed <= Date.now())) {
+
+                            // Get the matching character infomation from the font data.
+                            const matchingChar = this.fontInformationMap["pixel_bit"].chars.find((char) => char.id == dialogueLines[i][j].charCodeAt());
+
+                            // Draw the font character
+                            this.drawFontCharacter(
+                                this.fontTextureMap["pixel_bit"],
+                                matchingChar.x - matchingChar.xoffset,
+                                matchingChar.y,
+                                matchingChar.width,
+                                matchingChar.height,
+                                this.tileSize + currentLineLength,
+                                (this.screenHeight - 2) * this.tileSize - 12 + (i * 27) + (matchingChar.yoffset *  2)
+                            );
+
+                            // Increase the spacing of the next word
+                            currentLineLength += this.context.measureText(dialogueLines[i].slice(j, j+1)).width;
+
+                            // Check if the end of the dialogue line has been reached.
+                            if (this.currentDialogueAnimationCharacter == dialogueLines[i].length && this.currentDialogueAnimationLine == i) {
+                                this.currentDialogueAnimationLine++;
+                                this.currentDialogueAnimationCharacter = 0;
+                                this.lastDialogueCharTimestamp = Date.now();
+
+                            // Update the timestamp of when the next character should appear.
+                            } else if (j == this.currentDialogueAnimationCharacter && i == this.currentDialogueAnimationLine) {
+                                this.lastDialogueCharTimestamp = Date.now();
+                                this.currentDialogueAnimationCharacter++;
+                            }
+                        }
+                    }
                 }
-
             }
         }
 
@@ -406,11 +444,22 @@ export class Renderer {
         } else {
             this.dialogueBoxEnabled = option;
         }
+
+        if (this.dialogueBoxEnabled) {
+            this.dialogueStartTimestamp = Date.now() + this.animatedDialogueInitialDelay;
+            this.lastDialogueCharTimestamp = null;
+            this.currentDialogueAnimationCharacter = 0;
+            this.currentDialogueAnimationLine = 0;
+        } else {
+            this.dialogueStartTimestamp == null;
+        }
     }
 
     setDialogueLines(dialogueLines) {
         this.currentDialogueLines = dialogueLines;
     }
+
+
 
     calculateDialogueLineCount(name, text) {
         this.context.font =  `32px pixel`;
