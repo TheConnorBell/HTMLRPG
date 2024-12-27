@@ -431,8 +431,4 @@ export class Renderer {
         this.currentDialogueName = name;
         this.currentDialogueText = text;
     }
-
-    loadFont() {
-        
-    }
 }

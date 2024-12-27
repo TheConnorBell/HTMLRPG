@@ -22,6 +22,7 @@ export class Player {
     dialogueManager = null;
 
     usingTeleporter = false;
+    inCutscene = false;
 
     // Temporary variable until game state saving added.
     dialogueProgressPoints = {};
@@ -145,6 +146,11 @@ export class Player {
 
         // Return if the player is already moving.
         if (this.currentlyMoving) {
+            return;
+        }
+
+        // Return if the player is in a cutscene.
+        if (this.inCutscene) {
             return;
         }
 
@@ -287,12 +293,18 @@ export class Player {
         // Get the dialogue and the new dialogue ID state to store.
         var dialogueToDisplay = this.dialogueManager.progressDialogue(interactorAtDestination.dialogue, currentDialogueID);
 
-        // Display the dialogue
-        this.renderer.toggleDialogueBox(true);
-        this.renderer.showDialogue(dialogueToDisplay.name, dialogueToDisplay.text);
+        // See if the dialogue sequence has finished and should be ended.
+        if (dialogueToDisplay.endOfDialogue == true) {
+            this.renderer.toggleDialogueBox(false);
+            this.inCutscene = false;
+        } else {
+            // Display the dialogue
+            this.renderer.toggleDialogueBox(true);
+            this.inCutscene = true;
+            this.renderer.showDialogue(dialogueToDisplay.name, dialogueToDisplay.text);
+        }
 
         // Store the current dialogue progress for the npc
         this.dialogueProgressPoints[interactorAtDestination.dialogue] = dialogueToDisplay.dialoguePointID;
-
     }
 }

@@ -39,36 +39,42 @@ export class DialogueManager {
         // Find the root of the current dialogue point in the dialogue file.
         var dialogeTreeOrigin = this.loadedDialogue[dialogueFilePath].dialogue.find((branch) => branch.id == dialogueStartPoint);
 
+        // Set the dialogue variables to return.
+        var dialogue = {
+            "name":null,
+            "text":null,
+            "dialoguePointID":this.currentDialoguePoint,
+            "endOfDialogue":false
+        }
+
         // Check if the next dialogue stage needs to be moved onto.
         if (this.currentDialogueTextStep >= dialogeTreeOrigin.text.length) {
 
             // Check if the player has reached the end of the dialogue and will now just repeat the same text.
             if (dialogeTreeOrigin.nextID != "") {
                 this.currentDialoguePoint = dialogeTreeOrigin.nextID;
+                dialogue.dialoguePointID = dialogeTreeOrigin.nextID;
                 this.currentDialogueTextStep = 0;
-                dialogeTreeOrigin = this.loadedDialogue[dialogueFilePath].dialogue.find((branch) => branch.id == dialogeTreeOrigin.nextID);
+                //dialogeTreeOrigin = this.loadedDialogue[dialogueFilePath].dialogue.find((branch) => branch.id == dialogeTreeOrigin.nextID);
             } else {
                 this.currentDialogueTextStep--;
             }
-        }
 
-        // Set the dialogue variables to return.
-        var dialogue = {
-            "name":null,
-            "text":null,
-            "dialoguePointID":this.currentDialoguePoint
+            
+            dialogue.endOfDialogue = true;
+            return dialogue;
         }
 
         if (!this.doesPlayerMeetRequirements(dialogeTreeOrigin.req)) {
             // Display the requirement not met dialogue.
-            console.log(dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].name + ": " + dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].text);
+            //console.log(dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].name + ": " + dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].text);
 
             dialogue.name = dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].name;
             dialogue.text = dialogeTreeOrigin.notMetReqText[this.currentDialogueTextStep].text;
 
         } else {
             // Display the dialogue.
-            console.log(dialogeTreeOrigin.text[this.currentDialogueTextStep].name + ": " + dialogeTreeOrigin.text[this.currentDialogueTextStep].text);
+            //console.log(dialogeTreeOrigin.text[this.currentDialogueTextStep].name + ": " + dialogeTreeOrigin.text[this.currentDialogueTextStep].text);
 
             dialogue.name = dialogeTreeOrigin.text[this.currentDialogueTextStep].name;
             dialogue.text = dialogeTreeOrigin.text[this.currentDialogueTextStep].text;
