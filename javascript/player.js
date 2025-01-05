@@ -304,6 +304,9 @@ export class Player {
             this.renderer.toggleDialogueBox(false);
             this.inCutscene = false;
         } else {
+
+            // Check 
+
             // Display the dialogue
             this.renderer.toggleDialogueBox(true);
             this.inCutscene = true;

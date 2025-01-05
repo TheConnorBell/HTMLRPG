@@ -25,6 +25,7 @@ export class Renderer {
     lastDialogueCharTimestamp = null;
     animatedDialogueInitialDelay = 200; //ms
     dialogueStartTimestamp = null;
+    hasDialogueFinishedDisplaying = false;
 
     mapManager;
 
@@ -244,7 +245,7 @@ export class Renderer {
                 currentInteractor.width,
                 currentInteractor.height,
                 0,
-                this.tileSize * (currentInteractor.orientation || 0),
+                this.tileSize * currentInteractor.height * (currentInteractor.orientation || 0),
                 currentInteractor.width,
                 currentInteractor.height
             );
@@ -284,7 +285,7 @@ export class Renderer {
                 currentInteractor.width,
                 currentInteractor.height,
                 0,
-                this.tileSize * (currentInteractor.orientation || 0),
+                this.tileSize * currentInteractor.height * (currentInteractor.orientation || 0),
                 currentInteractor.width,
                 currentInteractor.height
             );
@@ -300,7 +301,7 @@ export class Renderer {
             if (this.dialogueStartTimestamp != null && this.dialogueStartTimestamp <= Date.now()) {
 
                 // Set the text formatting styles.
-                this.context.font =  `32px pixel`;
+                this.context.font =  `16px pixel`;
                 this.context.fillStyle = "red";
                 this.context.textBaseline = 'alphabetic';
                 
@@ -344,7 +345,7 @@ export class Renderer {
                                 matchingChar.width,
                                 matchingChar.height,
                                 this.tileSize + currentLineLength,
-                                (this.screenHeight - 2) * this.tileSize - 12 + (i * 27) + (matchingChar.yoffset *  2)
+                                (this.screenHeight - 2) * this.tileSize - 6 + (i * 14) + (matchingChar.yoffset)
                             );
 
                             // Increase the spacing of the next word
@@ -365,6 +366,11 @@ export class Renderer {
                     }
                 }
             }
+
+            // Check if the dialogue has finished displaying.
+            if (this.currentDialogueAnimationLine >= this.currentDialogueLines.length) {
+                this.hasDialogueFinishedDisplaying = true;
+            }
         }
 
 
@@ -377,14 +383,14 @@ export class Renderer {
     drawPlayer() {
         this.context.drawImage(
             this.textureMap[this.player.getTexturePath()],
-            (this.tileSize/2) * this.player.getCurrentWalkPose(),
-            this.player.getOrientation() * this.tileSize,
-            this.tileSize/2,
+            (this.tileSize) * this.player.getCurrentWalkPose(),
+            this.player.getOrientation() * this.tileSize * 2,
             this.tileSize,
+            this.tileSize * 2,
             this.tileSize * this.canvasWidthToCenter,
             this.tileSize * this.canvasHeightToCenter - this.tileSize,
             this.tileSize,
-            this.tileSize*2
+            this.tileSize * 2
         );
     }
 
@@ -393,7 +399,7 @@ export class Renderer {
     }
 
     drawFontCharacter(texturePath, sx, sy, swidth, sheight, xPos, yPos) {
-        this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos, swidth * 2, sheight * 2);
+        this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos, swidth, sheight);
     }
 
     drawInteractor(interactorType, texturePath, xPos, yPos, width, height, sx = 0, sy = 0, swidth = width, sheight = height) {
@@ -401,8 +407,8 @@ export class Renderer {
         // Pre=process the width and height variables
         width = width * this.tileSize;
         height = height * this.tileSize;
-        swidth = swidth * this.tileSize / 2;
-        sheight = sheight * this.tileSize / 2;
+        swidth = swidth * this.tileSize;
+        sheight = sheight * this.tileSize;
 
         if (interactorType != "NPC") {
             sx = 0;
@@ -457,12 +463,13 @@ export class Renderer {
 
     setDialogueLines(dialogueLines) {
         this.currentDialogueLines = dialogueLines;
+        this.hasDialogueFinishedDisplaying = false;
     }
 
 
 
     calculateDialogueLineCount(name, text) {
-        this.context.font =  `32px pixel`;
+        this.context.font =  `16px pixel`;
 
         var words = (name + ": " + text).split(" ");
         var lines = [];

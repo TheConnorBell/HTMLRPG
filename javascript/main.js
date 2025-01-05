@@ -31,7 +31,7 @@ const screenCellHeightAmount = 11;
 const screenCellWidthAmount = 15;
 
 // Tile sizes.
-const tileSize = 32;
+const tileSize = 16;
 
 // Frame variables.
 var currentSecond = 0;
