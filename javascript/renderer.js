@@ -37,6 +37,7 @@ export class Renderer {
         this.canvas = canvas;
         this.context = context;
         this.tileSize = tileSize;
+        this.pixelSize = this.tileSize / 16;
         this.screenWidth = screenCellWidthAmount;
         this.screenHeight = screenCellHeightAmount;
         this.canvasWidthToCenter = Math.floor(screenCellWidthAmount / 2);
@@ -86,6 +87,11 @@ export class Renderer {
         const fontData = await fontResponse.json();
         this.fontInformationMap[fontData.face] = fontData;
 
+        // This forces the font to fully be loaded into the webpage, and without it the first time dialogue is loaded,
+        // the output will be incorrect, but adding in this ensures all dialogue will be measured correctly.
+        // I dont know why this works, but for whatever reason it does. 
+        this.context.measureText("");
+
         const fontTexture = new Image();
         fontTexture.src = fontData.imageFile;
         this.fontTextureMap[fontData.face] = fontTexture;
@@ -103,11 +109,14 @@ export class Renderer {
         if (!this.canvas) {
             return;
         }
-
-        var DPR = window.devicePixelRatio ?? 1;
-        this.context.width = window.innerWidth*DPR;
-        this.context.height = window.innerHeight*DPR;
-        this.context.scale(DPR, DPR);
+        
+        this.pixelSize = this.canvas.width / 15
+        
+        // Ensure pixel rendering is kept sharp.
+        this.context.imageSmoothingEnabled = false;
+        
+        // Set the font used for dialogue.
+        this.context.font =  this.pixelSize + "px pixel";
 
         // Clear the frame.
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -149,8 +158,8 @@ export class Renderer {
             // Draw the tile.
             this.drawObject(
                 this.textureMap[cell.texturePath], 
-                (cell.x - xOffset + playerSubX) * this.tileSize,
-                (cell.y - yOffset + playerSubY) * this.tileSize
+                (cell.x - xOffset + playerSubX) * this.pixelSize,
+                (cell.y - yOffset + playerSubY) * this.pixelSize
             );
         }
 
@@ -180,8 +189,8 @@ export class Renderer {
             // Draw the teleporter.
             this.drawObject(
                 teleporterTexturePath,
-                (currentTeleporter.x - xOffset + playerSubX) * this.tileSize,
-                (currentTeleporter.y - yOffset + playerSubY) * this.tileSize
+                (currentTeleporter.x - xOffset + playerSubX) * this.pixelSize,
+                (currentTeleporter.y - yOffset + playerSubY) * this.pixelSize
             );
         }
 
@@ -206,8 +215,8 @@ export class Renderer {
             // Draw the decoration.
             this.drawObject(
                 this.textureMap[currentDecoration.texturePath],
-                (currentDecoration.x - xOffset + playerSubX) * this.tileSize,
-                (currentDecoration.y - yOffset + playerSubY) * this.tileSize,
+                (currentDecoration.x - xOffset + playerSubX) * this.pixelSize,
+                (currentDecoration.y - yOffset + playerSubY) * this.pixelSize,
                 currentDecoration.width,
                 currentDecoration.height
             );
@@ -240,8 +249,8 @@ export class Renderer {
             this.drawInteractor(
                 currentInteractor.type,
                 this.textureMap[currentInteractor.texturePath],
-                (currentInteractor.x - xOffset + playerSubX) * this.tileSize,
-                (currentInteractor.y - yOffset + playerSubY) * this.tileSize,
+                (currentInteractor.x - xOffset + playerSubX) * this.pixelSize,
+                (currentInteractor.y - yOffset + playerSubY) * this.pixelSize,
                 currentInteractor.width,
                 currentInteractor.height,
                 0,
@@ -264,8 +273,8 @@ export class Renderer {
             // Draw the decoration.
             this.drawObject(
                 this.textureMap[currentDecoration.texturePath],
-                (currentDecoration.x - xOffset + playerSubX) * this.tileSize,
-                (currentDecoration.y - yOffset + playerSubY) * this.tileSize,
+                (currentDecoration.x - xOffset + playerSubX) * this.pixelSize,
+                (currentDecoration.y - yOffset + playerSubY) * this.pixelSize,
                 currentDecoration.width,
                 currentDecoration.height
             );
@@ -280,8 +289,8 @@ export class Renderer {
             this.drawInteractor(
                 currentInteractor.type,
                 this.textureMap[currentInteractor.texturePath],
-                (currentInteractor.x - xOffset + playerSubX) * this.tileSize,
-                (currentInteractor.y - yOffset + playerSubY) * this.tileSize,
+                (currentInteractor.x - xOffset + playerSubX) * this.pixelSize,
+                (currentInteractor.y - yOffset + playerSubY) * this.pixelSize,
                 currentInteractor.width,
                 currentInteractor.height,
                 0,
@@ -295,13 +304,13 @@ export class Renderer {
         if (this.dialogueBoxEnabled) {
             
             // Draw the dialogue box.
-            this.drawObject(this.textureMap["dialogue_box_0"], 0, (this.screenHeight - 3) * this.tileSize, this.screenWidth, 3);
+            this.drawObject(this.textureMap["dialogue_box_0"], 0, (this.screenHeight - 3) * this.pixelSize, this.screenWidth, 3);
             
             // Check if the dialogue should start being displayed yet.
             if (this.dialogueStartTimestamp != null && this.dialogueStartTimestamp <= Date.now()) {
 
                 // Set the text formatting styles.
-                this.context.font =  `16px pixel`;
+                this.context.font =  this.pixelSize + "px pixel";
                 this.context.fillStyle = "red";
                 this.context.textBaseline = 'alphabetic';
                 
@@ -320,7 +329,7 @@ export class Renderer {
 
                     // Options for testing to ensure that the bitmap font variant matches the vector font variant.
                     //this.context.textBaseline = 'top';
-                    //his.context.fillText(lines[i], this.tileSize, (this.screenHeight - 2) * this.tileSize - 14 + (i * 27));
+                    //his.context.fillText(lines[i], this.pixelSize, (this.screenHeight - 2) * this.pixelSize - 14 + (i * 27));
                     //this.context.textBaseline = 'alphabetic';
 
                     // Loop through each character in the font.
@@ -344,8 +353,8 @@ export class Renderer {
                                 matchingChar.y,
                                 matchingChar.width,
                                 matchingChar.height,
-                                this.tileSize + currentLineLength,
-                                (this.screenHeight - 2) * this.tileSize - 6 + (i * 14) + (matchingChar.yoffset)
+                                this.pixelSize + currentLineLength,
+                                (this.screenHeight - 2) * this.pixelSize - (6 * (this.pixelSize / this.tileSize)) + (i * 14 * (this.pixelSize / this.tileSize)) + (matchingChar.yoffset * (this.pixelSize / this.tileSize))
                             );
 
                             // Increase the spacing of the next word
@@ -376,37 +385,38 @@ export class Renderer {
 
         // Draw the screen opacity cover for scene transitions.
         this.context.fillStyle = "rgba(0,0,0," + this.transitionOpacity + ")";
-        this.context.fillRect(0, 0, this.screenWidth * this.tileSize, this.screenHeight * this.tileSize);
+        this.context.fillRect(0, 0, this.screenWidth * this.pixelSize, this.screenHeight * this.pixelSize);
 
     }
 
     drawPlayer() {
+
         this.context.drawImage(
             this.textureMap[this.player.getTexturePath()],
             (this.tileSize) * this.player.getCurrentWalkPose(),
             this.player.getOrientation() * this.tileSize * 2,
             this.tileSize,
             this.tileSize * 2,
-            this.tileSize * this.canvasWidthToCenter,
-            this.tileSize * this.canvasHeightToCenter - this.tileSize,
-            this.tileSize,
-            this.tileSize * 2
+            this.pixelSize * this.canvasWidthToCenter,
+            this.pixelSize * this.canvasHeightToCenter - this.pixelSize,
+            this.pixelSize,
+            this.pixelSize * 2
         );
     }
 
     drawObject(texturePath, xPos, yPos, width = 1, height = 1) {
-        this.context.drawImage(texturePath, xPos, yPos, this.tileSize * width, this.tileSize * height);
+        this.context.drawImage(texturePath, xPos, yPos, this.pixelSize * width, this.pixelSize * height);
     }
 
     drawFontCharacter(texturePath, sx, sy, swidth, sheight, xPos, yPos) {
-        this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos, swidth, sheight);
+        this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos, swidth * (this.pixelSize / this.tileSize), sheight * (this.pixelSize / this.tileSize));
     }
 
     drawInteractor(interactorType, texturePath, xPos, yPos, width, height, sx = 0, sy = 0, swidth = width, sheight = height) {
 
         // Pre=process the width and height variables
-        width = width * this.tileSize;
-        height = height * this.tileSize;
+        width = width * this.pixelSize;
+        height = height * this.pixelSize;
         swidth = swidth * this.tileSize;
         sheight = sheight * this.tileSize;
 
@@ -414,6 +424,7 @@ export class Renderer {
             sx = 0;
             sy = 0;
         }
+
         this.context.drawImage(texturePath, sx, sy, swidth, sheight, xPos, yPos - (height / 2), width, height);
     }
 
@@ -466,10 +477,9 @@ export class Renderer {
         this.hasDialogueFinishedDisplaying = false;
     }
 
-
-
     calculateDialogueLineCount(name, text) {
-        this.context.font =  `16px pixel`;
+        
+        this.context.font =  this.pixelSize + "px pixel";
 
         var words = (name + ": " + text).split(" ");
         var lines = [];
@@ -479,7 +489,7 @@ export class Renderer {
             var word = words[i];
             var width = this.context.measureText(currentLine + " " + word).width;
 
-            if (width <= (13 * this.tileSize)) {
+            if (width <= (13 * this.pixelSize)) {
                 currentLine += " " + word;
             } else {
                 lines.push(currentLine);

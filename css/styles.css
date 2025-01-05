@@ -11,12 +11,12 @@ html, body {
 #gameRegion {
     display: flex;
     margin: auto;
+    margin-top: 5em;
     justify-content: center;
     align-items: center;
 }
 
 #gameCanvas {
-    width: 60%;
     background-color: black;
     image-rendering: pixelated;
     border: 2px black solid;

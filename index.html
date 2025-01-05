@@ -5,7 +5,6 @@
     <meta http-equiv="Cache-Control" content="no-cache"/>
 </head>
 <body>
-    <script type="module" src="javascript/main.js"></script>
     <div id="gameStats">
         <a id="FPS"></a>
         <a id="Position"></a>
@@ -14,6 +13,39 @@
     <div id="gameRegion">
         <canvas id="gameCanvas" width="240" height="176"></canvas>
     </div>
+    <script>
+        // Base canvas dimensions
+        const baseWidth = 240;
+        const baseHeight = 176;
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Function to resize canvas
+        function resizeCanvas() {
+            // Get the current window dimensions
+            const windowWidth = window.innerWidth * 0.9;
+            const windowHeight = window.innerHeight * 0.9;
+
+            // Calculate the number of multiples of 240 and 176 that fit in the window
+            const scaleX = Math.floor(windowWidth / baseWidth);
+            const scaleY = Math.floor(windowHeight / baseHeight);
+
+            // Use the smaller scale factor to maintain aspect ratio
+            const scale = Math.min(scaleX, scaleY);
+
+            // Set the canvas internal width and height based on the scale
+            canvas.width = baseWidth * scale;
+            canvas.height = baseHeight * scale;
+        }
+
+        // Initial resize when the page loads
+        resizeCanvas();
+
+        // Resize the canvas whenever the window is resized
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+    <script type="module" defer src="javascript/main.js"></script>
 </body>
 </html>
 
